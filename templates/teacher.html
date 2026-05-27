@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Nauczyciela - Monitor Indywidualny</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='teacher_style.css') }}">
+</head>
+<body>
+    <div class="control-panel">
+        <h2>Panel Sterowania Lekcją (Tryb Indywidualny)</h2>
+        <button class="btn-next" style="background: #6f42c1;" onclick="restartAll()">
+            RESETUJ WSZYSTKICH UCZNIÓW I IMIONA
+        </button>
+    </div>
+
+    <div class="grid" id="statusGrid">
+        {% for ip, name in students.items() %}
+        <div id="box-{{ ip | replace('.', '-') }}" class="student-box pending">
+            <strong>{{ name }}</strong><br>
+            <small>{{ ip }}</small><br>
+            <div class="task-info-micro">Zadanie: <span class="task-num-text">1</span> / {{ total_tasks }}</div>
+            <span class="status-text">Oczekiwanie...</span>
+            
+            <button class="btn-send-next" style="display:none; margin-top:10px; width:100%; padding:5px; font-size:12px; cursor:pointer;" onclick="sendNextTask('{{ ip }}')">
+                Daj kolejne zadanie
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        // Przesyła sygnał do serwera, aby zwiększyć licznik zadań dla danego IP
+        function sendNextTask(studentIp) {
+            const body = new URLSearchParams();
+            body.append('ip', studentIp);
+
+            fetch('/next_student_task', { method: 'POST', body: body })
+            .then(res => res.json())
+            .then(data => {
+                if(!data.success) {
+                    alert(data.message);
+                }
+            });
+        }
+
+        // Resetuje całą lekcję, liczniki zadań oraz wymazuje wpisane imiona uczniów
+        function restartAll() {
+            if(confirm("Czy na pewno chcesz zresetować wszystkich uczniów do zadania 1 oraz wyczyścić listę obecności (imiona)?")) {
+                fetch('/restart_tasks', { method: 'POST' }).then(() => location.reload());
+            }
+        }
+
+        // Pobiera co 2 sekundy stan klasy i aktualizuje wygląd kafelków
+        function refreshStatus() {
+            fetch('/status').then(res => res.json()).then(data => {
+                for (let ip in data.progress) {
+                    const id = 'box-' + ip.replace(/\./g, '-');
+                    const el = document.getElementById(id);
+                    if (!el) continue;
+                    
+                    const statusTxt = el.querySelector('.status-text');
+                    const taskNumTxt = el.querySelector('.task-num-text');
+                    const nextBtn = el.querySelector('.btn-send-next');
+                    const nameEl = el.querySelector('strong');
+                    
+                    // Jeśli uczeń wpisał już swoje imię, podmieniamy nazwę stanowiska
+                    if (data.names[ip]) {
+                        nameEl.innerText = data.names[ip];
+                    }
+                    
+                    // Aktualizacja numeru zadania
+                    taskNumTxt.innerText = data.task_numbers[ip];
+                    
+                    // Logika kolorowania kafelków na podstawie statusów
+                    if (data.help[ip]) {
+                        el.className = 'student-box need-help';
+                        statusTxt.innerText = "POTRZEBNA POMOC!";
+                        nextBtn.style.display = "none";
+                    } else if (data.progress[ip]) {
+                        el.className = 'student-box done';
+                        statusTxt.innerText = "ZAKOŃCZYŁ";
+                        
+                        // Wyświetl przycisk tylko, jeśli uczeń ma jeszcze jakieś zadania do zrobienia
+                        if (data.task_numbers[ip] < {{ total_tasks }}) {
+                            nextBtn.style.display = "block";
+                        } else {
+                            statusTxt.innerText = "UKOŃCZYŁ CAŁOŚĆ!";
+                            nextBtn.style.display = "none";
+                        }
+                    } else {
+                        el.className = 'student-box pending';
+                        statusTxt.innerText = "W trakcie...";
+                        nextBtn.style.display = "none";
+                    }
+                }
+            });
+        }
+
+        // Uruchomienie cyklicznego odświeżania
+        setInterval(refreshStatus, 2000);
+    </script>
+</body>
+</html>

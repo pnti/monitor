@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Rejestracja Ucznia</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .register-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        h2 { color: #1a73e8; margin-bottom: 5px; }
+        .station-info { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        input[type="text"] { width: 100%; padding: 12px; margin: 15px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        button { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; }
+        button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="register-card">
+        <h2>Rozpocznij lekcję</h2>
+        <div class="station-info">{{ station }}</div>
+        <form action="/set_name" method="POST">
+            <input type="text" name="student_name" placeholder="Wpisz swoje imię i nazwisko" required autofocus autocomplete="off">
+            <button type="submit">Zatwierdź i przejdź do zadań</button>
+        </form>
+    </div>
+</body>
+</html>

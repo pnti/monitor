@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zadanie</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; }
+        /* KLUCZOWA ZMIANA: zachowanie znaków nowej linii */
+        .task-container { 
+            background: #fff9c4; 
+            border: 1px solid #fbc02d; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 25px 0; 
+            text-align: left; 
+            font-size: 1.1em; 
+            line-height: 1.6;
+            white-space: pre-wrap; 
+        }
+        button { border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px; transition: 0.3s; }
+        .btn-done { background: #28a745; color: white; }
+        .btn-help { background: #ffc107; color: #212529; }
+        .btn-help.active { background: #dc3545; color: white; }
+        button:disabled { background: #6c757d !important; cursor: not-allowed; }
+    </style>
+</head>
+<body data-task-id="{{ task_id }}">
+    <div class="card">
+        <h1>{{ name }}</h1>
+        <div class="task-container">{{ task }}</div>
+        
+        <button id="helpBtn" class="btn-help" onclick="askHelp()">PROSZĘ O POMOC</button>
+        <button id="mainBtn" class="btn-done" onclick="sendDone()">ZADANIE WYKONANE</button>
+    </div>
+
+    <script>
+        const myTaskId = document.body.getAttribute('data-task-id');
+
+        function checkUpdate() {
+            fetch('/check_updates').then(res => res.json()).then(data => {
+                if (data.task_id !== myTaskId) location.reload();
+            });
+        }
+
+        function askHelp() {
+            fetch('/need_help', { method: 'POST' }).then(res => res.json()).then(data => {
+                const btn = document.getElementById('helpBtn');
+                if(data.is_helping) {
+                    btn.innerText = "WEZWANO NAUCZYCIELA";
+                    btn.classList.add('active');
+                } else {
+                    btn.innerText = "PROSZĘ O POMOC";
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function sendDone() {
+            if(confirm("Zgłosić zakończenie?")) {
+                fetch('/done', { method: 'POST' }).then(res => {
+                    if(res.ok) {
+                        document.getElementById('mainBtn').disabled = true;
+                        document.getElementById('mainBtn').innerText = "GOTOWE";
+                        document.getElementById('helpBtn').style.display = "none";
+                    }
+                });
+            }
+        }
+
+        setInterval(checkUpdate, 3000);
+    </script>
+</body>
+</html>
