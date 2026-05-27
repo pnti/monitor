@@ -1,0 +1,1 @@
+1. Szyfrowanie transmisji
