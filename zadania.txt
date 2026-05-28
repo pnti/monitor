@@ -1,0 +1,3 @@
+Zadanie 1: Napisz program w Pythonie, który wypisze na ekranie tekst 'Hello World'.
+Zadanie 2: Stwórz funkcję obliczającą silnię dla podanej liczby całkowitej n.
+Zadanie 3: Napisz program, który wczyta plik tekstowy i policzy liczbę występujących w nim słów.

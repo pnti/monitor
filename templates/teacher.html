@@ -2,57 +2,144 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Panel Nauczyciela - Monitor Indywidualny</title>
+    <title>Panel Nauczyciela - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='teacher_style.css') }}">
 </head>
 <body>
     <div class="control-panel">
-        <h2>Panel Sterowania Lekcją (Tryb Indywidualny)</h2>
-        <button class="btn-next" style="background: #6f42c1;" onclick="restartAll()">
-            RESETUJ WSZYSTKICH UCZNIÓW I IMIONA
-        </button>
+        <h2>Panel Sterowania Lekcją</h2>
+        <div class="header-buttons">
+            <button id="startLessonBtn" class="btn-start" onclick="startLesson()" style="display: none;">START</button>
+            <button class="btn-next" onclick="restartAll()">RESETUJ</button>
+        </div>
     </div>
 
-    <div class="grid" id="statusGrid">
-        {% for ip, name in students.items() %}
-        <div id="box-{{ ip | replace('.', '-') }}" class="student-box pending">
-            <strong>{{ name }}</strong><br>
-            <small>{{ ip }}</small><br>
-            <div class="task-info-micro">Zadanie: <span class="task-num-text">1</span> / {{ total_tasks }}</div>
-            <span class="status-text">Oczekiwanie...</span>
-            
-            <button class="btn-send-next" style="display:none; margin-top:10px; width:100%; padding:5px; font-size:12px; cursor:pointer;" onclick="sendNextTask('{{ ip }}')">
-                Daj kolejne zadanie
-            </button>
+    <div class="dashboard-container">
+        <div class="left-column">
+            <div class="bars-grid" id="statusGrid">
+                {% for ip, name in students.items() %}
+                <div id="box-{{ ip | replace('.', '-') }}" class="student-bar pending" onclick="selectStudent('{{ ip }}')">
+                    <div class="student-info-block">
+                        <strong class="student-name-text">{{ name }}</strong>
+                        <small class="student-ip-text">{{ ip }}</small>
+                    </div>
+                    <div class="student-task-block">Zad: <span class="task-num-text">1</span>/{{ total_tasks }}</div>
+                    <div class="student-status-block">
+                        <span class="status-text">...</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        {% endfor %}
+        
+        <div class="right-column">
+            <div id="codeViewerPlaceholder" class="viewer-placeholder">
+                Wybierz ucznia z listy po lewej stronie, aby zobaczyć szczegóły i przesłany kod.
+            </div>
+            <div id="codeViewerContent" style="display: none;">
+                <h3 id="viewedStudentName">Uczeń: -</h3>
+                <p id="viewedStudentIp" style="color: #666; font-size: 0.9em; margin-top: -10px;"></p>
+                
+                <div class="viewer-actions" id="viewerActions">
+                    <button class="btn-accept" id="acceptBtn" onclick="acceptSelected()">ZALICZ ZADANIE</button>
+                    <button class="btn-reject" id="rejectBtn" onclick="rejectSelected()">ZWRÓĆ DO POPRAWY</button>
+                </div>
+
+                <h4>Ostatnio przesłany kod źródłowy:</h4>
+                <pre id="globalCodePreview" class="global-code-box"># Brak kodu...</pre>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Przesyła sygnał do serwera, aby zwiększyć licznik zadań dla danego IP
-        function sendNextTask(studentIp) {
-            const body = new URLSearchParams();
-            body.append('ip', studentIp);
+        let selectedStudentIp = null;
+        let globalStateCache = {};
 
-            fetch('/next_student_task', { method: 'POST', body: body })
-            .then(res => res.json())
-            .then(data => {
-                if(!data.success) {
-                    alert(data.message);
+        function selectStudent(ip) {
+            selectedStudentIp = ip;
+            document.getElementById('codeViewerPlaceholder').style.display = 'none';
+            document.getElementById('codeViewerContent').style.display = 'block';
+            
+            document.querySelectorAll('.student-bar').forEach(el => el.classList.remove('selected-bar'));
+            const activeBar = document.getElementById('box-' + ip.replace(/\./g, '-'));
+            if (activeBar) activeBar.classList.add('selected-bar');
+
+            updateRightPanel();
+        }
+
+        function updateRightPanel() {
+            if (!selectedStudentIp || !globalStateCache.progress) return;
+
+            const ip = selectedStudentIp;
+            const name = globalStateCache.names[ip] || "Stanowisko";
+            const code = globalStateCache.codes[ip] || "# Uczeń nie przesłał jeszcze żadnego kodu dla tego zadania.";
+            const isDone = globalStateCache.progress[ip];
+
+            document.getElementById('viewedStudentName').innerText = `Uczeń: ${name}`;
+            document.getElementById('viewedStudentIp').innerText = `Adres IP: ${ip} | Zadanie: ${globalStateCache.task_numbers[ip]} / {{ total_tasks }}`;
+            document.getElementById('globalCodePreview').innerText = code;
+
+            const actionsBlock = document.getElementById('viewerActions');
+            if (isDone && globalStateCache.task_numbers[ip] <= {{ total_tasks }}) {
+                actionsBlock.style.display = 'flex';
+            } else {
+                actionsBlock.style.display = 'none';
+            }
+        }
+
+        function startLesson() {
+            fetch('/start_lesson', { method: 'POST' })
+            .then(res => res.json()).then(data => {
+                if(data.success) {
+                    document.getElementById('startLessonBtn').style.display = 'none';
                 }
             });
         }
 
-        // Resetuje całą lekcję, liczniki zadań oraz wymazuje wpisane imiona uczniów
+        function acceptSelected() {
+            if (!selectedStudentIp) return;
+            const body = new URLSearchParams();
+            body.append('ip', selectedStudentIp);
+
+            fetch('/accept_task', { method: 'POST', body: body })
+            .then(res => res.json()).then(data => {
+                if(!data.success) alert(data.message);
+            });
+        }
+
+        function rejectSelected() {
+            if (!selectedStudentIp) return;
+            const reason = prompt("Wpisz wskazówkę dla ucznia:");
+            if (reason === null) return;
+
+            const body = new URLSearchParams();
+            body.append('ip', selectedStudentIp);
+            body.append('reason', reason);
+
+            fetch('/reject_task', { method: 'POST', body: body })
+            .then(res => res.json()).then(data => {
+                if(!data.success) alert(data.message);
+            });
+        }
+
         function restartAll() {
-            if(confirm("Czy na pewno chcesz zresetować wszystkich uczniów do zadania 1 oraz wyczyścić listę obecności (imiona)?")) {
+            if(confirm("Czy na pewno chcesz zresetować wszystkich uczniów, ich kody oraz zamknąć dostęp do zadań (wymagany będzie ponowny START)?")) {
                 fetch('/restart_tasks', { method: 'POST' }).then(() => location.reload());
             }
         }
 
-        // Pobiera co 2 sekundy stan klasy i aktualizuje wygląd kafelków
         function refreshStatus() {
             fetch('/status').then(res => res.json()).then(data => {
+                globalStateCache = data;
+                
+                // Zarządzanie widocznością zielonego przycisku START
+                const startBtn = document.getElementById('startLessonBtn');
+                if (data.lesson_started) {
+                    startBtn.style.display = 'none';
+                } else {
+                    startBtn.style.display = 'inline-block';
+                }
+                
                 for (let ip in data.progress) {
                     const id = 'box-' + ip.replace(/\./g, '-');
                     const el = document.getElementById(id);
@@ -60,43 +147,29 @@
                     
                     const statusTxt = el.querySelector('.status-text');
                     const taskNumTxt = el.querySelector('.task-num-text');
-                    const nextBtn = el.querySelector('.btn-send-next');
-                    const nameEl = el.querySelector('strong');
+                    const nameEl = el.querySelector('.student-name-text');
                     
-                    // Jeśli uczeń wpisał już swoje imię, podmieniamy nazwę stanowiska
-                    if (data.names[ip]) {
-                        nameEl.innerText = data.names[ip];
-                    }
-                    
-                    // Aktualizacja numeru zadania
+                    if (data.names[ip]) nameEl.innerText = data.names[ip];
                     taskNumTxt.innerText = data.task_numbers[ip];
                     
-                    // Logika kolorowania kafelków na podstawie statusów
+                    let baseClass = 'student-bar ';
+                    if (ip === selectedStudentIp) baseClass += 'selected-bar ';
+
                     if (data.help[ip]) {
-                        el.className = 'student-box need-help';
-                        statusTxt.innerText = "POTRZEBNA POMOC!";
-                        nextBtn.style.display = "none";
+                        el.className = baseClass + 'need-help';
+                        statusTxt.innerText = "POMOC";
                     } else if (data.progress[ip]) {
-                        el.className = 'student-box done';
-                        statusTxt.innerText = "ZAKOŃCZYŁ";
-                        
-                        // Wyświetl przycisk tylko, jeśli uczeń ma jeszcze jakieś zadania do zrobienia
-                        if (data.task_numbers[ip] < {{ total_tasks }}) {
-                            nextBtn.style.display = "block";
-                        } else {
-                            statusTxt.innerText = "UKOŃCZYŁ CAŁOŚĆ!";
-                            nextBtn.style.display = "none";
-                        }
+                        el.className = baseClass + 'done';
+                        statusTxt.innerText = "OCENA";
                     } else {
-                        el.className = 'student-box pending';
-                        statusTxt.innerText = "W trakcie...";
-                        nextBtn.style.display = "none";
+                        el.className = baseClass + 'pending';
+                        statusTxt.innerText = data.lesson_started ? "Praca" : "Blokada";
                     }
                 }
+                updateRightPanel();
             });
         }
 
-        // Uruchomienie cyklicznego odświeżania
         setInterval(refreshStatus, 2000);
     </script>
 </body>

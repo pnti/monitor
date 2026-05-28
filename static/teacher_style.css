@@ -1,87 +1,192 @@
 body { 
     font-family: sans-serif; 
-    padding: 30px; 
+    padding: 15px; 
     background: #f8f9fa; 
     margin: 0;
+    box-sizing: border-box;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .control-panel { 
     background: white; 
-    padding: 20px; 
+    padding: 10px 15px; 
     border-radius: 8px; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
-    margin-bottom: 30px; 
-}
-
-.task-info { 
-    font-size: 1.2em; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
     margin-bottom: 15px; 
-    color: #333; 
-    white-space: pre-wrap; /* Zachowanie Enterów w podglądzie */
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
-    gap: 15px; 
+.control-panel h2 { margin: 0; font-size: 1.3em; }
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
 }
 
-.student-box { 
-    padding: 20px; 
-    border-radius: 8px; 
-    text-align: center; 
-    border: 3px solid #ddd; 
-    background: #fff; 
-    position: relative;
-    transition: all 0.3s;
-}
-
-.pending { 
-    border-color: #ddd; 
-}
-
-.done { 
-    border-color: #28a745; 
-    background: #d4edda; 
-    color: #155724;
-}
-
-/* Animacja dla prośby o pomoc */
-.need-help { 
-    border-color: #dc3545; 
-    background: #f8d7da; 
-    animation: blink 1s infinite; 
-    color: #721c24;
+/* Zielony przycisk START */
+.btn-start {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
     font-weight: bold;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+.btn-start:hover {
+    background: #218838;
 }
 
-@keyframes blink { 
-    50% { border-color: #ffc107; } 
-}
-
+/* Przycisk RESETUJ (zmieniony na czerwony zgodnie z wytycznymi) */
 .btn-next { 
-    background: #007bff; 
+    background: #dc3545; 
     color: white; 
     border: none; 
-    padding: 15px 25px; 
+    padding: 8px 15px; 
     border-radius: 4px; 
     cursor: pointer; 
     font-weight: bold; 
-    font-size: 16px; 
+    font-size: 13px; 
+    transition: background 0.2s;
 }
-
 .btn-next:hover {
-    background: #0056b3;
+    background: #c82333;
 }
 
-.btn-next:disabled { 
-    background: #ccc; 
-    cursor: not-allowed; 
+.dashboard-container {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+    min-height: 0;
 }
 
-.status-text {
-    display: block;
-    margin-top: 10px;
+.left-column {
+    flex: 1.5;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.bars-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    width: 100%;
+}
+
+.right-column {
+    flex: 2;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.student-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: white;
+    border-left: 4px solid #ccc;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    font-size: 12px;
+}
+
+.student-bar:hover {
+    transform: translateX(2px);
+    background: #f1f3f5;
+}
+
+.selected-bar {
+    background: #e8f0fe !important;
+    box-shadow: inset 0 0 0 1px #1a73e8 !important;
+}
+
+.student-info-block {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.student-name-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.student-ip-text {
+    color: #888;
+    font-size: 0.85em;
+}
+
+.student-task-block {
+    flex: 1;
     font-size: 0.9em;
-    text-transform: uppercase;
+    color: #555;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.student-status-block {
+    flex: 1;
+    text-align: right;
+    font-weight: bold;
+    font-size: 0.95em;
+}
+
+.pending { border-left-color: #adb5bd; color: #495057; }
+.done { border-left-color: #28a745; background: #e2f0d9; color: #155724; }
+.need-help { border-left-color: #dc3545; background: #fce8e6; color: #a51d24; animation: pulse-border 1.5s infinite; }
+
+@keyframes pulse-border {
+    50% { border-left-color: #ffc107; }
+}
+
+.viewer-placeholder {
+    margin: auto;
+    color: #6c757d;
+    font-style: italic;
+    text-align: center;
+}
+
+.viewer-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-accept { background: #28a745; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1; }
+.btn-reject { background: #dc3545; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1; }
+.btn-accept:hover { background: #218838; }
+.btn-reject:hover { background: #c82333; }
+
+.global-code-box {
+    flex: 1;
+    background: #272822;
+    color: #f8f8f2;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    margin: 0;
 }
