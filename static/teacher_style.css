@@ -1,183 +1,244 @@
-body { 
-    font-family: sans-serif; 
-    padding: 15px; 
-    background: #f8f9fa; 
+body {
+    font-family: sans-serif;
+    background: #f0f2f5;
     margin: 0;
-    box-sizing: border-box;
+    padding: 20px;
     height: 100vh;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
 }
 
-.control-panel { 
-    background: white; 
-    padding: 10px 15px; 
-    border-radius: 8px; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-    margin-bottom: 15px; 
-    flex-shrink: 0;
+/* Górny panel sterowania lekcją */
+.control-panel {
+    background: white;
+    padding: 15px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
+    flex-shrink: 0;
 }
 
-.control-panel h2 { margin: 0; font-size: 1.3em; }
-
-.header-buttons {
-    display: flex;
-    gap: 10px;
+.control-panel h2 {
+    margin: 0;
+    color: #333;
 }
 
-/* Zielony przycisk START */
+/* Przyciski w nagłówku */
 .btn-start {
     background: #28a745;
     color: white;
     border: none;
-    padding: 8px 20px;
+    padding: 10px 25px;
+    font-size: 14px;
+    font-weight: bold;
     border-radius: 4px;
     cursor: pointer;
-    font-weight: bold;
-    font-size: 13px;
-    transition: background 0.2s;
 }
+
 .btn-start:hover {
     background: #218838;
 }
 
-/* Przycisk RESETUJ (zmieniony na czerwony zgodnie z wytycznymi) */
-.btn-next { 
-    background: #dc3545; 
-    color: white; 
-    border: none; 
-    padding: 8px 15px; 
-    border-radius: 4px; 
-    cursor: pointer; 
-    font-weight: bold; 
-    font-size: 13px; 
-    transition: background 0.2s;
+.btn-next {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
 }
+
 .btn-next:hover {
     background: #c82333;
 }
 
+/* Główny kontener dzielący ekran na dwie kolumny */
 .dashboard-container {
     display: flex;
-    gap: 15px;
+    gap: 20px;
     flex: 1;
-    min-height: 0;
+    min-height: 0; /* Wymagane dla poprawnego przewijania wewnątrz kolumn */
 }
 
+/* Lewa kolumna: Siatka uczniów */
 .left-column {
-    flex: 1.5;
-    max-width: 600px;
-    display: flex;
-    flex-direction: column;
+    flex: 3;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    overflow-y: auto;
     min-height: 0;
 }
 
-.bars-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-    width: 100%;
-}
-
+/* Prawa kolumna: Podgląd i edycja kodu */
 .right-column {
     flex: 2;
     background: white;
+    padding: 20px;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
-    padding: 15px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
+/* Kompaktowa siatka mieszcząca 18 stanowisk bez przewijania */
+.bars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+/* Pojedynczy pasek/kafelek ucznia */
 .student-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
-    border-radius: 4px;
-    background: white;
-    border-left: 4px solid #ccc;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: transform 0.1s, box-shadow 0.1s;
     user-select: none;
-    font-size: 12px;
 }
 
 .student-bar:hover {
-    transform: translateX(2px);
-    background: #f1f3f5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
+/* Wizualne wyróżnienie aktywnego wyboru nauczyciela */
 .selected-bar {
-    background: #e8f0fe !important;
-    box-shadow: inset 0 0 0 1px #1a73e8 !important;
+    border: 2px solid #007bff !important;
+    box-shadow: 0 0 8px rgba(0,123,255,0.3);
 }
 
 .student-info-block {
-    flex: 2;
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    text-align: left;
+    max-width: 110px;
 }
 
 .student-name-text {
+    font-size: 13px;
+    color: #222;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .student-ip-text {
-    color: #888;
-    font-size: 0.85em;
+    font-size: 10px;
+    color: #777;
 }
 
 .student-task-block {
-    flex: 1;
-    font-size: 0.9em;
-    color: #555;
-    text-align: center;
-    white-space: nowrap;
+    font-size: 12px;
+    font-weight: bold;
+    color: #444;
 }
 
 .student-status-block {
-    flex: 1;
-    text-align: right;
-    font-weight: bold;
-    font-size: 0.95em;
-}
-
-.pending { border-left-color: #adb5bd; color: #495057; }
-.done { border-left-color: #28a745; background: #e2f0d9; color: #155724; }
-.need-help { border-left-color: #dc3545; background: #fce8e6; color: #a51d24; animation: pulse-border 1.5s infinite; }
-
-@keyframes pulse-border {
-    50% { border-left-color: #ffc107; }
-}
-
-.viewer-placeholder {
-    margin: auto;
-    color: #6c757d;
-    font-style: italic;
+    min-width: 65px;
     text-align: center;
 }
 
+.status-text {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 3px;
+    color: white;
+    display: inline-block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Kolorystyka stanów kafelka */
+.student-bar.pending { background: #f8f9fa; }
+.student-bar.pending .status-text { background: #6c757d; }
+
+.student-bar.done { background: #e2f0d9; border-color: #a9d08e; }
+.student-bar.done .status-text { background: #385723; }
+
+.student-bar.need-help { background: #fff2cc; border-color: #ffd966; }
+.student-bar.need-help .status-text { background: #b25900; }
+
+/* Placeholder w prawej kolumnie */
+.viewer-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Przyciski akceptacji i odrzucenia zadania */
 .viewer-actions {
     display: flex;
     gap: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
 }
 
-.btn-accept { background: #28a745; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1; }
-.btn-reject { background: #dc3545; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1; }
+.btn-accept {
+    flex: 1;
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 .btn-accept:hover { background: #218838; }
+
+.btn-reject {
+    flex: 1;
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 .btn-reject:hover { background: #c82333; }
 
+/* Przycisk lokalnego uruchamiania kodu ucznia */
+.btn-run-student {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-run-student:hover {
+    background: #0056b3;
+}
+
+/* Pole tekstowe edytora kodu ucznia (textarea) */
 .global-code-box {
     flex: 1;
     background: #272822;
@@ -187,6 +248,28 @@ body {
     font-family: monospace;
     font-size: 12px;
     overflow-y: auto;
+    white-space: pre;
+    margin: 0;
+    border: 1px solid #444;
+    resize: none;
+    outline: none;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Konsola wyjściowa dla nauczyciela pod oknem kodu */
+.teacher-terminal-box {
+    background: #1e1e1e;
+    color: #ffffff;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: left;
+    max-height: 100px;
+    overflow-y: auto;
     white-space: pre-wrap;
     margin: 0;
+    border: 1px solid #333;
+    flex-shrink: 0;
 }

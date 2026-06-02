@@ -3,30 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zadanie</title>
+    <title>Panel Ucznia - Zadanie</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
 </head>
 <body data-task-id="{{ task_id }}">
-    <div class="card">
-        <h1>{{ name }}</h1>
-        <div style="color: #666; margin-top: -10px; margin-bottom: 20px;">{{ station }}</div>
-        
-        <div id="rejectionBannerContainer"></div>
 
-        <div class="task-container">{{ task }}</div>
+    <div class="app-container">
         
-        <textarea id="studentCode" class="code-area" placeholder="# Wklej tutaj swój kod programu..."></textarea>
+        <div class="left-column">
+            <div class="student-header">
+                <h1>{{ name }}</h1>
+                <div class="station-badge">{{ station }}</div>
+            </div>
+            
+            <div id="rejectionBannerContainer"></div>
 
-        <div class="button-group">
-            <button id="helpBtn" class="btn-help" onclick="askHelp()">POMOC</button>
-            <button id="mainBtn" class="btn-done" onclick="sendDone()">WYŚLIJ KOD DO OCENY</button>
+            <div class="task-section">
+                <h3>Treść zadania do wykonania:</h3>
+                <div class="task-container">{{ task }}</div>
+            </div>
+            
+            <div class="footer-info">Status odświeża się automatycznie.</div>
+        </div>
+        
+        <div class="right-column">
+            <div class="editor-header">
+                <h3>Kod źródłowy Python:</h3>
+            </div>
+            
+            <textarea id="studentCode" class="code-area" placeholder="# Napisz swój program tutaj...&#10;print('Hello World')" spellcheck="false"></textarea>
+
+            <div class="terminal-header">Konsola wyjściowa:</div>
+            <pre id="output" class="terminal-box">Oczekiwanie na uruchomienie kodu...</pre>
+
+            <div class="button-group">
+                <button id="helpBtn" class="btn-help" onclick="askHelp()">POMOC</button>
+                <button id="runBtn" class="btn-run" onclick="runPythonCode()">URUCHOM KOD</button>
+                <button id="mainBtn" class="btn-done" onclick="sendDone()">WYŚLIJ DO OCENY</button>
+            </div>
         </div>
 
-        <div class="footer">Status odświeża się automatycznie.</div>
     </div>
 
     <script>
         let currentTaskId = document.body.getAttribute('data-task-id');
+        let pyodideInstance = null;
+        let isAlreadyRejected = false; 
+
+        async function initPyodide() {
+            const outputBox = document.getElementById('output');
+            try {
+                pyodideInstance = await loadPyodide();
+                outputBox.innerText = "Środowisko Python gotowe do uruchomienia.";
+            } catch (err) {
+                outputBox.innerText = "Błąd podczas ładowania silnika Python: " + err;
+            }
+        }
+        initPyodide();
+
+        async function runPythonCode() {
+            if (!pyodideInstance) {
+                alert("Silnik Pythona wciąż się ładuje, poczekaj chwilę...");
+                return;
+            }
+
+            const code = document.getElementById('studentCode').value;
+            const outputBox = document.getElementById('output');
+            outputBox.innerText = "Uruchamianie...\n";
+            outputBox.style.color = "#fff";
+
+            try {
+                pyodideInstance.runPython(`
+                    import sys
+                    import io
+                    sys.stdout = io.StringIO()
+                `);
+
+                await pyodideInstance.runPythonAsync(code);
+
+                const stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+                outputBox.innerText = stdout ? stdout : "Program zakończył działanie (brak danych wyjściowych).";
+            } catch (err) {
+                outputBox.innerText = err.message;
+                outputBox.style.color = "#ff6b6b";
+            }
+        }
 
         function fetchStatus() {
             fetch('/student_status')
@@ -34,45 +96,56 @@
             .then(data => {
                 const mainBtn = document.getElementById('mainBtn');
                 const helpBtn = document.getElementById('helpBtn');
+                const runBtn = document.getElementById('runBtn');
                 const studentCode = document.getElementById('studentCode');
                 const taskContainer = document.querySelector('.task-container');
                 const bannerContainer = document.getElementById('rejectionBannerContainer');
                 
-                // 1. Scenariusz: Nauczyciel zaliczył zadanie (nastąpiła zmiana ID zadania)
                 if (data.task_id !== currentTaskId) {
                     currentTaskId = data.task_id;
                     document.body.setAttribute('data-task-id', data.task_id);
                     taskContainer.innerText = data.task_text;
-                    studentCode.value = ""; // Czyszczenie pola na nowe zadanie
+                    studentCode.value = ""; 
                     studentCode.disabled = false;
                     mainBtn.disabled = false;
-                    mainBtn.innerText = "WYŚLIJ KOD DO OCENY";
+                    runBtn.disabled = false;
+                    mainBtn.innerText = "WYŚLIJ DO OCENY";
                     helpBtn.style.display = "inline-block";
-                    bannerContainer.innerHTML = ""; // Usunięcie baneru
+                    bannerContainer.innerHTML = "";
+                    document.getElementById('output').innerText = "Środowisko Python gotowe do uruchomienia.";
+                    isAlreadyRejected = false; 
                     return;
                 }
 
-                // 2. Scenariusz: Kod wysłany, oczekiwanie na ocenę nauczyciela
                 if (data.progress === true) {
                     studentCode.disabled = true;
                     mainBtn.disabled = true;
+                    runBtn.disabled = true;
                     mainBtn.innerText = "OCZEKIWANIE NA OCENĘ";
                     helpBtn.style.display = "none";
                     bannerContainer.innerHTML = "";
+                    isAlreadyRejected = false; 
                 } 
-                // 3. Scenariusz: Nauczyciel zwrócił zadanie i podał powód w komentarzu
                 else if (data.progress === false && data.rejection_msg !== "") {
                     studentCode.disabled = false;
                     mainBtn.disabled = false;
+                    runBtn.disabled = false;
                     mainBtn.innerText = "WYŚLIJ POPRAWIONY KOD";
                     helpBtn.style.display = "inline-block";
                     
                     bannerContainer.innerHTML = `
                         <div class="rejection-banner">
                             <strong>Zadanie zwrócone do poprawy:</strong><br>
-                            ${data.rejection_msg}
+                            \${data.rejection_msg}
                         </div>
                     `;
+
+                    if (!isAlreadyRejected) {
+                        if (data.code && studentCode.value !== data.code) {
+                            studentCode.value = data.code;
+                        }
+                        isAlreadyRejected = true; 
+                    }
                 }
             });
         }
@@ -105,16 +178,15 @@
                 fetch('/done', { method: 'POST', body: body }).then(res => {
                     if(res.ok) {
                         studentCodeElement.disabled = true;
-                        const mainBtn = document.getElementById('mainBtn');
-                        mainBtn.disabled = true;
-                        mainBtn.innerText = "OCZEKIWANIE NA OCENĘ";
+                        document.getElementById('mainBtn').disabled = True;
+                        document.getElementById('mainBtn').innerText = "OCZEKIWANIE NA OCENĘ";
+                        document.getElementById('runBtn').disabled = true;
                         document.getElementById('helpBtn').style.display = "none";
                     }
                 });
             }
         }
 
-        // Cykliczne sprawdzanie zmian co 2 sekundy
         setInterval(fetchStatus, 2000);
     </script>
 </body>

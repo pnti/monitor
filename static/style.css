@@ -1,114 +1,200 @@
-body { 
-    font-family: sans-serif; 
-    background: #f0f2f5; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    min-height: 100vh; 
-    margin: 0; 
-}
-
-.card { 
-    background: white; 
-    padding: 30px; 
-    border-radius: 12px; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-    width: 90%; 
-    max-width: 600px; 
-    text-align: center; 
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    font-family: sans-serif;
+    background: #f0f2f5;
+    overflow: hidden; /* Wyłączenie głównego paska przewijania okna */
     box-sizing: border-box;
 }
 
-.task-container { 
-    background: #fff9c4; 
-    border: 1px solid #fbc02d; 
-    padding: 20px; 
-    border-radius: 8px; 
-    margin: 15px 0; 
-    text-align: left; 
-    font-size: 1.1em; 
-    line-height: 1.6;
-    white-space: pre-wrap; 
+/* Główna siatka aplikacji dzieląca ekran na dwie kolumny */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    box-sizing: border-box;
+    padding: 15px;
+    gap: 15px;
 }
 
-/* Duże pole tekstowe o stałej szerokości znaków (Monospace) */
-.code-area { 
-    width: 100%; 
-    height: 200px; 
-    font-family: monospace; 
-    font-size: 14px; 
-    padding: 10px; 
-    box-sizing: border-box; 
-    border: 1px solid #ccc; 
-    border-radius: 6px; 
-    margin: 15px 0; 
-    resize: vertical; 
+/* Lewa kolumna: Treść zadania i wiadomości */
+.left-column {
+    flex: 1; /* Zajmuje odpowiednią proporcję przestrzeni */
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
 }
 
-/* Czerwony komunikat zwrotu do poprawy */
-.rejection-banner { 
-    background: #f8d7da; 
-    color: #721c24; 
-    border: 1px solid #f5c6cb; 
-    padding: 15px; 
-    border-radius: 6px; 
-    margin-bottom: 20px; 
-    text-align: left; 
-    font-size: 0.95em; 
+/* Prawa kolumna: Edytor, terminal i przyciski */
+.right-column {
+    flex: 1.5; /* Jest nieco szersza niż lewa kolumna */
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Wymagane, aby Flexbox poprawnie kurczył elementy wewnętrzne */
+}
+
+/* Nagłówki sekcji */
+.student-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.station-badge {
+    color: #666;
+    font-size: 14px;
+    margin-top: 2px;
+    margin-bottom: 15px;
+}
+
+.task-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.task-section h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #444;
+}
+
+/* Pole wyświetlające treść zadania */
+.task-container {
+    flex: 1;
+    background: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #2d3748;
+    overflow-y: auto; /* Przewijanie tylko wewnątrz opisu zadania */
+}
+
+/* Baner odrzucenia kodu */
+.rejection-banner {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    color: #c53030;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 13px;
     line-height: 1.4;
 }
 
+.footer-info {
+    font-size: 11px;
+    color: #a0aec0;
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* Prawa kolumna - Edytor kodu źródłowego */
+.editor-header h3, .terminal-header {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: bold;
+    color: #444;
+}
+
+.terminal-header {
+    margin-top: 15px;
+}
+
+.code-area {
+    flex: 2; /* Edytor jest dwa razy większy niż terminal wyjściowy */
+    background: #272822;
+    color: #f8f8f2;
+    font-family: monospace;
+    font-size: 14px;
+    padding: 15px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    resize: none;
+    outline: none;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.code-area:disabled {
+    background: #1e1e1e;
+    color: #75715e;
+}
+
+/* Konsola wyjściowa (mniejsza, umieszczona pod kodem) */
+.terminal-box {
+    flex: 1; /* Zajmuje mniejszą część wysokości */
+    background: #1e1e1e;
+    color: #00ff00;
+    font-family: monospace;
+    font-size: 13px;
+    padding: 12px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    overflow-y: auto;
+    margin: 0;
+    white-space: pre-wrap;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Dolna sekcja z przyciskami sterującymi */
 .button-group {
     display: flex;
     gap: 10px;
-    align-items: stretch;
-    justify-content: center;
+    margin-top: 15px;
+    flex-shrink: 0;
 }
 
-button { 
-    border: none; 
-    font-weight: bold; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    transition: 0.3s; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
+button {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
 }
 
-.btn-done { 
-    flex: 4; 
-    background: #28a745; 
-    color: white; 
-    padding: 20px; 
-    font-size: 18px; 
+button:disabled {
+    background: #cbd5e1 !important;
+    color: #94a3b8 !important;
+    cursor: not-allowed;
 }
 
-.btn-done:hover {
-    background: #218838;
+.btn-run {
+    background: #007bff;
+    color: white;
 }
+.btn-run:hover { background: #0056b3; }
 
-.btn-help { 
-    flex: 1; 
-    background: #ffc107; 
-    color: #212529; 
-    padding: 0 10px; 
-    font-size: 12px; 
-    text-transform: uppercase;
+.btn-done {
+    flex: 1;
+    background: #28a745;
+    color: white;
 }
+.btn-done:hover { background: #218838; }
 
-.btn-help.active { 
-    background: #dc3545; 
-    color: white; 
+.btn-help {
+    background: #ffc107;
+    color: #212529;
 }
+.btn-help:hover { background: #e0a800; }
 
-button:disabled { 
-    background: #6c757d !important; 
-    cursor: not-allowed; 
-}
-
-.footer { 
-    margin-top: 20px; 
-    font-size: 0.8em; 
-    color: #888; 
+.btn-help.active {
+    background: #dc3545;
+    color: white;
 }

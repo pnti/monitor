@@ -4,17 +4,23 @@
     <meta charset="UTF-8">
     <title>Panel Nauczyciela - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='teacher_style.css') }}">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
 </head>
 <body>
     <div class="control-panel">
         <h2>Panel Sterowania Lekcją</h2>
-        <div class="header-buttons">
+        <div class="header-buttons" style="display: flex; align-items: center; gap: 15px;">
+            <div id="shuffleOptionWrapper" style="font-size: 13px; font-weight: bold; color: #555; display: none;">
+                <input type="checkbox" id="shuffleCheck" style="margin-right: 5px; cursor: pointer;">
+                <label for="shuffleCheck" style="cursor: pointer; user-select: none;">Losowa kolejność zadań</label>
+            </div>
             <button id="startLessonBtn" class="btn-start" onclick="startLesson()" style="display: none;">START</button>
             <button class="btn-next" onclick="restartAll()">RESETUJ</button>
         </div>
     </div>
 
     <div class="dashboard-container">
+        
         <div class="left-column">
             <div class="bars-grid" id="statusGrid">
                 {% for ip, name in students.items() %}
@@ -36,7 +42,7 @@
             <div id="codeViewerPlaceholder" class="viewer-placeholder">
                 Wybierz ucznia z listy po lewej stronie, aby zobaczyć szczegóły i przesłany kod.
             </div>
-            <div id="codeViewerContent" style="display: none;">
+            <div id="codeViewerContent" style="display: none; flex: 1; display: flex; flex-direction: column; min-height: 0;">
                 <h3 id="viewedStudentName">Uczeń: -</h3>
                 <p id="viewedStudentIp" style="color: #666; font-size: 0.9em; margin-top: -10px;"></p>
                 
@@ -45,29 +51,95 @@
                     <button class="btn-reject" id="rejectBtn" onclick="rejectSelected()">ZWRÓĆ DO POPRAWY</button>
                 </div>
 
-                <h4>Ostatnio przesłany kod źródłowy:</h4>
-                <pre id="globalCodePreview" class="global-code-box"># Brak kodu...</pre>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="margin: 0;">Kod źródłowy ucznia (możesz edytować):</h4>
+                    <button id="teacherRunBtn" class="btn-run-student" onclick="runStudentCode()">URUCHOM KOD UCZNIA</button>
+                </div>
+                <textarea id="globalCodePreview" class="global-code-box" spellcheck="false"></textarea>
+
+                <h4 style="margin: 10px 0 5px 0;">Konsola wykonawcza (Nauczyciel):</h4>
+                <pre id="teacherTerminal" class="teacher-terminal-box">Silnik Pythona gotowy.</pre>
             </div>
         </div>
+
     </div>
 
     <script>
         let selectedStudentIp = null;
         let globalStateCache = {};
+        let pyodideTeacherInstance = null;
+        let isCodeEdited = false; // Zapobiega nadpisywaniu tekstu przez automatyczne odświeżanie w tle
+
+        // Inicjalizacja Pyodide w przeglądarce nauczyciela
+        async function initTeacherPyodide() {
+            try {
+                pyodideTeacherInstance = await loadPyodide();
+                document.getElementById('teacherTerminal').innerText = "Środowisko testowe Python zainicjalizowane poprawnie.";
+            } catch (err) {
+                document.getElementById('teacherTerminal').innerText = "Błąd inicjalizacji silnika: " + err;
+            }
+        }
+        initTeacherPyodide();
+
+        // Wykrycie zmian w polu edytora – blokada automatycznego odświeżania tekstu
+        document.getElementById('globalCodePreview').addEventListener('input', () => {
+            isCodeEdited = true;
+        });
+
+        // Uruchamianie kodu w lokalnym sandboksie Pyodide
+        async function runStudentCode() {
+            if (!pyodideTeacherInstance) {
+                alert("Silnik Pythona wciąż się ładuje...");
+                return;
+            }
+
+            const code = document.getElementById('globalCodePreview').value;
+            const terminal = document.getElementById('teacherTerminal');
+            
+            if (code.startsWith("# Uczeń nie przesłał") || code.startsWith("# Brak kodu") || code.trim() === "") {
+                alert("Brak kodu do uruchomienia.");
+                return;
+            }
+
+            terminal.innerText = "Uruchamianie kodu...\n";
+            terminal.style.color = "#00ff00";
+
+            try {
+                pyodideTeacherInstance.runPython(`
+                    import sys
+                    import io
+                    sys.stdout = io.StringIO()
+                `);
+
+                await pyodideTeacherInstance.runPythonAsync(code);
+
+                const stdout = pyodideTeacherInstance.runPython("sys.stdout.getvalue()");
+                terminal.innerText = stdout ? stdout : "Program zakończył działanie poprawnie (brak danych wyjściowych).";
+                terminal.style.color = "#ffffff";
+            } catch (err) {
+                terminal.innerText = err.message;
+                terminal.style.color = "#ff6b6b";
+            }
+        }
 
         function selectStudent(ip) {
             selectedStudentIp = ip;
+            isCodeEdited = false; // Reset flagi edycji przy przełączeniu stanowiska
+            
             document.getElementById('codeViewerPlaceholder').style.display = 'none';
-            document.getElementById('codeViewerContent').style.display = 'block';
+            document.getElementById('codeViewerContent').style.display = 'flex';
             
             document.querySelectorAll('.student-bar').forEach(el => el.classList.remove('selected-bar'));
             const activeBar = document.getElementById('box-' + ip.replace(/\./g, '-'));
             if (activeBar) activeBar.classList.add('selected-bar');
 
-            updateRightPanel();
+            document.getElementById('teacherTerminal').innerText = "Oczekiwanie na uruchomienie kodu...";
+            document.getElementById('teacherTerminal').style.color = "#ffffff";
+
+            updateRightPanel(true); // Wymuszenie załadowania kodu przy kliknięciu
         }
 
-        function updateRightPanel() {
+        function updateRightPanel(forceLoad = false) {
             if (!selectedStudentIp || !globalStateCache.progress) return;
 
             const ip = selectedStudentIp;
@@ -77,7 +149,15 @@
 
             document.getElementById('viewedStudentName').innerText = `Uczeń: ${name}`;
             document.getElementById('viewedStudentIp').innerText = `Adres IP: ${ip} | Zadanie: ${globalStateCache.task_numbers[ip]} / {{ total_tasks }}`;
-            document.getElementById('globalCodePreview').innerText = code;
+            
+            const codeBox = document.getElementById('globalCodePreview');
+            
+            // Aktualizacja pola kodu tylko gdy nauczyciel go nie edytuje lub zmieniono stację
+            if (!isCodeEdited || forceLoad) {
+                if (codeBox.value !== code) {
+                    codeBox.value = code;
+                }
+            }
 
             const actionsBlock = document.getElementById('viewerActions');
             if (isDone && globalStateCache.task_numbers[ip] <= {{ total_tasks }}) {
@@ -88,10 +168,17 @@
         }
 
         function startLesson() {
-            fetch('/start_lesson', { method: 'POST' })
+            const isShuffleChecked = document.getElementById('shuffleCheck').checked;
+
+            fetch('/start_lesson', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shuffle: isShuffleChecked })
+            })
             .then(res => res.json()).then(data => {
                 if(data.success) {
                     document.getElementById('startLessonBtn').style.display = 'none';
+                    document.getElementById('shuffleOptionWrapper').style.display = 'none';
                 }
             });
         }
@@ -109,12 +196,17 @@
 
         function rejectSelected() {
             if (!selectedStudentIp) return;
-            const reason = prompt("Wpisz wskazówkę dla ucznia:");
+            
+            const reason = prompt("Wpisz wskazówkę dla ucznia dlaczego zadanie zostało odrzucone:");
             if (reason === null) return;
+
+            // Pobieramy kod z pola edycyjnego (zawierający Twoje ewentualne poprawki)
+            const currentEditedCode = document.getElementById('globalCodePreview').value;
 
             const body = new URLSearchParams();
             body.append('ip', selectedStudentIp);
             body.append('reason', reason);
+            body.append('code', currentEditedCode); // Przesłanie poprawionego kodu z powrotem na serwer
 
             fetch('/reject_task', { method: 'POST', body: body })
             .then(res => res.json()).then(data => {
@@ -128,16 +220,19 @@
             }
         }
 
+        // Pobieranie asynchroniczne danych o stanie klasy
         function refreshStatus() {
             fetch('/status').then(res => res.json()).then(data => {
                 globalStateCache = data;
                 
-                // Zarządzanie widocznością zielonego przycisku START
                 const startBtn = document.getElementById('startLessonBtn');
+                const shuffleWrap = document.getElementById('shuffleOptionWrapper');
                 if (data.lesson_started) {
                     startBtn.style.display = 'none';
+                    shuffleWrap.style.display = 'none';
                 } else {
                     startBtn.style.display = 'inline-block';
+                    shuffleWrap.style.display = 'block';
                 }
                 
                 for (let ip in data.progress) {
@@ -166,10 +261,11 @@
                         statusTxt.innerText = data.lesson_started ? "Praca" : "Blokada";
                     }
                 }
-                updateRightPanel();
+                updateRightPanel(false);
             });
         }
 
+        // Pooling statusu klasy co 2 sekundy
         setInterval(refreshStatus, 2000);
     </script>
 </body>
