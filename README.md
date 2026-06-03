@@ -20,4 +20,4 @@ Aby udostępnić japlikację w sieci lokalnej w klasie, należy w pliku `app.py`
 
 Aplikację najlepiej uruchamiać za pomocą skryptów startowych, które automatycznie obsługuja zależności.
 
-W przypadku *MS Windows* jest to *uruchom.bat*, w przypadku LInuksa / MacOSX *uruchom.sh* .
+W przypadku *MS Windows* jest to *uruchom.bat*, w przypadku Linuksa / MacOSX *uruchom.sh* .
