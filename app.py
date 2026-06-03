@@ -91,7 +91,6 @@ def init_db():
             )
         ''')
 
-        # NOWE TABELE: Historia i migawki stanów całych lekcji
         conn.execute('''
             CREATE TABLE IF NOT EXISTS lesson_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -268,8 +267,11 @@ def start_lesson():
     
     with get_db() as conn:
         lesson_already_started = conn.execute("SELECT value FROM lesson_config WHERE key = 'lesson_started'").fetchone()['value'] == '1'
+        
+        # POPRAWIONE: Gdy lekcja trwa (np. wczytana z historii), WZNÓW poprawnie wymusza zapis do bazy danych i zatwierdza transakcję
         if lesson_already_started:
             conn.execute("UPDATE lesson_config SET value = '1' WHERE key = 'submissions_allowed'")
+            conn.commit()
             return jsonify({"success": True})
 
         if selected_tag:
@@ -312,6 +314,7 @@ def stop_lesson():
     if not is_teacher_logged_in(): abort(401)
     with get_db() as conn:
         conn.execute("UPDATE lesson_config SET value = '0' WHERE key = 'submissions_allowed'")
+        conn.commit() # POPRAWIONE: Wymuszenie zapisu i zamknięcia transakcji
     return jsonify({"success": True})
 
 @app.route('/done', methods=['POST'])
@@ -620,16 +623,14 @@ def admin_get_history():
 
 @app.route('/admin/lessons')
 def admin_lessons():
-    """Wyświetla listę zapisanych stanów lekcji."""
     check_ip_permission()
     if not is_teacher_logged_in(): return redirect(url_for('login'))
     
     with get_db() as conn:
-        # Zabezpieczenie: Sprawdzamy czy przyjmowanie zadań nie jest aktywne
         lesson_started = conn.execute("SELECT value FROM lesson_config WHERE key = 'lesson_started'").fetchone()['value'] == '1'
         submissions_allowed = conn.execute("SELECT value FROM lesson_config WHERE key = 'submissions_allowed'").fetchone()['value'] == '1'
         if lesson_started and submissions_allowed:
-            abort(403) # Blokada wejścia jeśli lekcja trwa w najlepsze
+            abort(403)
 
         all_lessons = conn.execute("SELECT * FROM lesson_history ORDER BY id DESC").fetchall()
         
@@ -637,7 +638,6 @@ def admin_lessons():
 
 @app.route('/admin/save_lesson', methods=['POST'])
 def admin_save_lesson():
-    """Zapisuje kompletną migawkę obecnego stanu wszystkich stanowisk."""
     check_ip_permission()
     if not is_teacher_logged_in(): abort(401)
     
@@ -646,14 +646,11 @@ def admin_save_lesson():
         return redirect(url_for('admin_lessons'))
         
     with get_db() as conn:
-        # 1. Tworzymy główny wpis lekcji
         cursor = conn.execute("INSERT INTO lesson_history (name) VALUES (?)", (lesson_name,))
         lesson_id = cursor.lastrowid
         
-        # 2. Pobieramy obecny stan całej klasy
         students_state = conn.execute("SELECT * FROM student_state").fetchall()
         
-        # 3. Kopiujemy stan każdego stanowiska do tabeli historycznej
         for s in students_state:
             conn.execute('''
                 INSERT INTO lesson_history_states 
@@ -668,12 +665,11 @@ def admin_save_lesson():
 
 @app.route('/admin/load_lesson/<int:lesson_id>', methods=['POST'])
 def admin_load_lesson(lesson_id):
-    """Przywraca stan klasy z zapisanej migawki lekcji."""
+    """Przywraca stan klasy z zapisanej migawki lekcji i bezpiecznie inicjuje flagi."""
     check_ip_permission()
     if not is_teacher_logged_in(): abort(401)
     
     with get_db() as conn:
-        # Zabezpieczenie przed wczytaniem w trakcie trwania lekcji
         lesson_started = conn.execute("SELECT value FROM lesson_config WHERE key = 'lesson_started'").fetchone()['value'] == '1'
         submissions_allowed = conn.execute("SELECT value FROM lesson_config WHERE key = 'submissions_allowed'").fetchone()['value'] == '1'
         if lesson_started and submissions_allowed:
@@ -683,10 +679,8 @@ def admin_load_lesson(lesson_id):
         if not saved_states:
             return redirect(url_for('admin_lessons'))
             
-        # 1. Czyścimy aktualną tabelę roboczą klasy
         conn.execute("DELETE FROM student_state")
         
-        # 2. Przywracamy kody i kroki uczniów z kopii zapasowej
         for s in saved_states:
             conn.execute('''
                 INSERT INTO student_state 
@@ -697,9 +691,10 @@ def admin_load_lesson(lesson_id):
                 s['progress'], s['help_requested'], s['submitted_code'], s['rejection_message'], s['task_map']
             ))
             
-        # 3. Aktywujemy flagi systemowe (Lekcja zostaje uznana za wystartowaną, ale z zablokowanym przyjmowaniem)
+        # POPRAWIONE: Jawne nadpisanie i zatwierdzenie wartości kluczy konfiguracyjnych w bazie danych
         conn.execute("UPDATE lesson_config SET value = '1' WHERE key = 'lesson_started'")
         conn.execute("UPDATE lesson_config SET value = '0' WHERE key = 'submissions_allowed'")
+        conn.commit()
         
     return redirect(url_for('teacher_view'))
 
@@ -710,7 +705,6 @@ def admin_delete_lesson(lesson_id):
     
     with get_db() as conn:
         conn.execute("PRAGMA foreign_keys = ON;")
-        # ON DELETE CASCADE automatycznie wyczyści powiązane rekordy z lesson_history_states
         conn.execute("DELETE FROM lesson_history WHERE id = ?", (lesson_id,))
         
     return redirect(url_for('admin_lessons'))

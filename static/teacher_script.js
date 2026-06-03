@@ -213,7 +213,7 @@ function refreshStatus() {
             } else {
                 if (startBtn) {
                     startBtn.style.display = 'inline-block';
-                    startBtn.innerText = "WZNÓW PRZYJMOWANIE";
+                    startBtn.innerText = "WZNÓW";
                 }
                 if (stopBtn) stopBtn.style.display = 'none';
                 if (lessonsLink) lessonsLink.style.display = 'inline-block';

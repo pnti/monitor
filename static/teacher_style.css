@@ -1,284 +1,266 @@
+/* Definicje ogólne i struktura siatki dwukolumnowej */
 body {
     font-family: sans-serif;
-    background: #f0f2f5;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     height: 100vh;
-    box-sizing: border-box;
+    width: 100vw;
+    background: #f0f2f5;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
-/* Górny panel sterowania lekcją */
+/* Górny panel kontrolny nauczyciela */
 .control-panel {
     background: white;
-    padding: 15px 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    padding: 10px 20px;
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    flex-shrink: 0;
+    justify-content: space-between;
+    height: 60px;
+    box-sizing: border-box;
 }
 
 .control-panel h2 {
     margin: 0;
-    color: #333;
+    font-size: 18px;
+    color: #2c3e50;
 }
 
-/* Przyciski w nagłówku */
-.btn-start {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 25px;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-start:hover {
-    background: #218838;
-}
-
-.btn-next {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 10px 25px;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-next:hover {
-    background: #c82333;
-}
-
-.btn-reset {
-    background-color: #ff9800 !important; /* Standardowy pomarańczowy */
-    color: white !important;
-}
-
-.btn-reset:hover {
-    background-color: #e65100 !important; /* Ciemny pomarańczowy przy najechaniu */
-}
-
-/* Główny kontener dzielący ekran na dwie kolumny */
+/* Główny kontener dashboardu */
 .dashboard-container {
     display: flex;
-    gap: 20px;
     flex: 1;
-    min-height: 0; /* Wymagane dla poprawnego przewijania wewnątrz kolumn */
-}
-
-/* Lewa kolumna: Siatka uczniów */
-.left-column {
-    flex: 3;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    overflow-y: auto;
+    height: calc(100vh - 60px);
+    padding: 12px;
+    gap: 12px;
+    box-sizing: border-box;
     min-height: 0;
 }
 
-/* Prawa kolumna: Podgląd i edycja kodu */
-.right-column {
-    flex: 2;
+/* Lewa kolumna: Lista stanowisk */
+.left-column {
+    flex: 1.2; /* Nieznacznie poszerzona, by pomieścić dwie kolumny kafelków */
     background: white;
-    padding: 20px;
     border-radius: 8px;
+    padding: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
-/* Kompaktowa siatka mieszcząca 18 stanowisk bez przewijania */
-.bars-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
+/* Prawa kolumna: Podgląd i terminal */
+.right-column {
+    flex: 2;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
-/* Pojedynczy pasek/kafelek ucznia */
+/* ZMIENIONE: Siatka stanowisk wyświetlająca się w DWÓCH kolumnach, dopasowana do ekranu */
+.bars-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Dokładnie 2 kolumny */
+    gap: 6px;                              /* Mniejszy odstęp dla oszczędności miejsca */
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 3px;
+}
+
+/* ZMIENIONE: Bardziej kompaktowy, niski pasek stanowiska */
 .student-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 15px;
-    border-radius: 6px;
-    border: 1px solid #ddd;
+    padding: 6px 10px;                     /* Zmniejszony padding góra/dół */
+    border-radius: 5px;
+    border: 1px solid #e2e8f0;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: all 0.12s ease-in-out;
+    background: #f8f9fa;
     user-select: none;
+    box-sizing: border-box;
 }
 
 .student-bar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: #cbd5e1;
+    background: #f1f5f9;
 }
 
-/* Wizualne wyróżnienie aktywnego wyboru nauczyciela */
+/* Wyróżnienie aktywnego (klikniętego) paska */
 .selected-bar {
-    border: 2px solid #007bff !important;
-    box-shadow: 0 0 8px rgba(0,123,255,0.3);
+    border: 2px solid #4a5568 !important;
+    background: #edf2f7 !important;
 }
 
+/* Bloki wewnątrz paska stanowiska */
 .student-info-block {
+    flex: 2;
     display: flex;
     flex-direction: column;
-    text-align: left;
-    max-width: 110px;
+    min-width: 0; /* Zapobiega rozpychaniu komórki przez długie ciągi */
 }
 
 .student-name-text {
     font-size: 13px;
-    color: #222;
+    color: #2d3748;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; /* Przycina zbyt długie nazwiska przy ciasnym układzie */
 }
 
 .student-ip-text {
     font-size: 10px;
-    color: #777;
+    color: #718096;
+    margin-top: 1px;
 }
 
 .student-task-block {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
-    color: #444;
+    color: #4a5568;
+    margin-right: 5px;
+    white-space: nowrap;
 }
 
 .student-status-block {
-    min-width: 65px;
-    text-align: center;
+    text-align: right;
 }
 
 .status-text {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: bold;
-    text-transform: uppercase;
     padding: 3px 6px;
     border-radius: 3px;
     color: white;
-    display: inline-block;
-    width: 100%;
-    box-sizing: border-box;
 }
 
-/* Kolorystyka stanów kafelka */
-.student-bar.pending { background: #f8f9fa; }
-.student-bar.pending .status-text { background: #6c757d; }
+/* Kolorystyka klas statusowych */
+.pending .status-text { background: #a0aec0; }
+.done .status-text { background: #28a745; }
+.need-help .status-text { background: #dc3545; }
 
-.student-bar.done { background: #e2f0d9; border-color: #a9d08e; }
-.student-bar.done .status-text { background: #385723; }
-
-.student-bar.need-help { background: #fff2cc; border-color: #ffd966; }
-.student-bar.need-help .status-text { background: #b25900; }
-
-/* Placeholder w prawej kolumnie */
+/* Placeholder prawej kolumny */
 .viewer-placeholder {
+    flex: 1;
     display: flex;
-    justify-content: center;
     align-items: center;
-    height: 100%;
-    color: #888;
+    justify-content: center;
+    color: #a0aec0;
     font-style: italic;
     text-align: center;
-    padding: 20px;
+    font-size: 14px;
 }
 
-/* Przyciski akceptacji i odrzucenia zadania */
-.viewer-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-shrink: 0;
-}
-
-.btn-accept {
-    flex: 1;
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px;
-    font-weight: bold;
-    font-size: 13px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-accept:hover { background: #218838; }
-
-.btn-reject {
-    flex: 1;
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 12px;
-    font-weight: bold;
-    font-size: 13px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-reject:hover { background: #c82333; }
-
-/* Przycisk lokalnego uruchamiania kodu ucznia */
-.btn-run-student {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 11px;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.btn-run-student:hover {
-    background: #0056b3;
-}
-
-/* Pole tekstowe edytora kodu ucznia (textarea) */
+/* Elementy podglądu kodu */
 .global-code-box {
+    width: 100%;
     flex: 1;
+    min-height: 0;
     background: #272822;
     color: #f8f8f2;
-    padding: 12px;
-    border-radius: 6px;
     font-family: monospace;
-    font-size: 12px;
-    overflow-y: auto;
-    white-space: pre;
-    margin: 0;
-    border: 1px solid #444;
-    resize: none;
-    outline: none;
+    font-size: 13px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
     box-sizing: border-box;
-    width: 100%;
+    resize: none;
 }
 
-/* Konsola wyjściowa dla nauczyciela pod oknem kodu */
 .teacher-terminal-box {
+    width: 100%;
+    height: 100px;
     background: #1e1e1e;
     color: #ffffff;
     font-family: monospace;
-    font-size: 11px;
-    padding: 8px 12px;
-    border-radius: 4px;
-    text-align: left;
-    max-height: 100px;
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    margin: 0;
+    box-sizing: border-box;
     overflow-y: auto;
     white-space: pre-wrap;
-    margin: 0;
-    border: 1px solid #333;
-    flex-shrink: 0;
+}
+
+/* Moduły przycisków w prawym edytorze */
+.viewer-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.viewer-actions button {
+    flex: 1;
+    padding: 8px;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+.btn-accept { background: #28a745; }
+.btn-accept:hover { background: #218838; }
+.btn-reject { background: #dc3545; }
+.btn-reject:hover { background: #c82333; }
+
+.btn-run-student {
+    background: #17a2b8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-run-student:hover { background: #138496; }
+
+/* Geometria przycisków i linków w górnym panelu kontrolnym nauczyciela */
+.control-panel .header-buttons button,
+.control-panel .header-buttons .btn-teacher-nav {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 120px !important;       
+    height: 38px !important;       
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    border: none !important;
+}
+
+.control-panel .header-buttons .btn-teacher-nav {
+    color: white !important;
+}
+
+.btn-start {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+.btn-start:hover {
+    background-color: #218838 !important;
+}
+
+.btn-reset {
+    background-color: #ff9800 !important; 
+    color: white !important;
+}
+.btn-reset:hover {
+    background-color: #e65100 !important;
 }
