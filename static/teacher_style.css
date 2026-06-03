@@ -58,6 +58,15 @@ body {
     background: #c82333;
 }
 
+.btn-reset {
+    background-color: #ff9800 !important; /* Standardowy pomarańczowy */
+    color: white !important;
+}
+
+.btn-reset:hover {
+    background-color: #e65100 !important; /* Ciemny pomarańczowy przy najechaniu */
+}
+
 /* Główny kontener dzielący ekran na dwie kolumny */
 .dashboard-container {
     display: flex;

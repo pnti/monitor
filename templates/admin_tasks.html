@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Zarządzanie Bankiem Zadań</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h1, h2 { color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: sans-serif; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .help-text { font-size: 12px; color: #666; margin-top: 3px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .task-list { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .task-item { background: #f8f9fa; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px; position: relative; }
+        .task-text { font-size: 15px; line-height: 1.5; margin-bottom: 10px; white-space: pre-wrap; padding-right: 80px; }
+        .task-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag-badge { background: #e2e8f0; color: #4a5568; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .task-actions { position: absolute; top: 15px; right: 15px; }
+        .btn-delete { background: #dc3545; padding: 5px 10px; font-size: 12px; }
+        .btn-delete:hover { background: #c82333; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { color: #007bff; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-links">
+            <a href="/teacher">&larr; Powrót do Panelu Nauczyciela</a>
+        </div>
+        
+        <h1>Bank Zadań i Tagów</h1>
+        
+        <h2>Dodaj nowe zadanie</h2>
+        <form action="/admin/add_task" method="POST">
+            <div class="form-group">
+                <label for="task_text">Treść zadania:</label>
+                <textarea id="task_text" name="task_text" placeholder="Wpisz pełną treść zadania dla ucznia..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="tags">Tagi:</label>
+                <input type="text" id="tags" name="tags" placeholder="np. podstawy, pętle, warunki">
+                <div class="help-text">Wpisz tagi rozdzielając je przecinkami. Wielkość liter nie ma znaczenia.</div>
+            </div>
+            <button type="submit">ZAPISZ ZADANIE W BAZIE</button>
+        </form>
+        
+        <div class="task-list">
+            <h2>Wszystkie zarejestrowane zadania ({{ tasks|length }})</h2>
+            {% for task in tasks %}
+            <div class="task-item">
+                <div class="task-text">{{ task.task_text }}</div>
+                <div class="task-tags">
+                    {% if task.tag_list %}
+                        {% for tag in task.tag_list.split(',') %}
+                        <span class="tag-badge">{{ tag.strip() }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="tag-badge" style="background:#edf2f7; color:#a0aec0; font-style:italic; font-weight:normal;">brak tagów</span>
+                    {% endif %}
+                </div>
+                <div class="task-actions">
+                    <form action="/admin/delete_task/{{ task.id }}" method="POST" onsubmit="return confirm('Czy na pewno chcesz bezpowrotnie usunąć to zadanie z bazy danych?');">
+                        <button type="submit" class="btn-delete">USUŃ</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

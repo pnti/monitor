@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Archiwum Prac Uczniów</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; height: 100vh; width: 100vw; background: #f0f2f5; overflow: hidden; box-sizing: border-box; }
+        .nav-header { background: white; padding: 15px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+        .nav-header a { color: #007bff; text-decoration: none; font-weight: bold; font-size: 14px; }
+        .nav-header h1 { margin: 0; font-size: 20px; color: #2c3e50; }
+        .archive-container { display: flex; height: calc(100vh - 50px); padding: 15px; gap: 15px; box-sizing: border-box; }
+        .left-column { flex: 1; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow-y: auto; }
+        .right-column { flex: 2; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+        h2 { margin-top: 0; color: #4a5568; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .user-item { padding: 12px 15px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 10px; cursor: pointer; font-weight: bold; color: #2d3748; transition: all 0.15s; }
+        .user-item:hover { background: #edf2f7; border-color: #cbd5e1; }
+        .selected-user { background: #007bff !important; color: white !important; border-color: #0056b3 !important; }
+        .solution-card { background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+        .solution-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 5px; font-size: 13px; color: #718096; }
+        .solution-title { font-weight: bold; color: #2d3748; font-size: 14px; }
+        .solution-code { background: #272822; color: #f8f8f2; font-family: monospace; font-size: 13px; padding: 12px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; margin: 8px 0 0 0; }
+        .placeholder-text { color: #a0aec0; text-align: center; margin-top: 50px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-header">
+        <h1>Archiwum Zgłoszeń Uczniów</h1>
+        <a href="/teacher">&larr; Powrót do Panelu Nauczyciela</a>
+    </div>
+
+    <div class="archive-container">
+        <div class="left-column">
+            <h2>Uczniowie w bazie</h2>
+            <div id="usersList">
+                {% for student in students %}
+                <div class="user-item" onclick="loadStudentHistory(this, '{{ student.student_name }}')">
+                    {{ student.student_name }}
+                </div>
+                {% else %}
+                <div class="placeholder-text" style="margin-top: 20px;">Brak zapisanych rozwiązań w historii.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="right-column">
+            <h2>Zatwierdzone rozwiązania</h2>
+            <div id="historyContent">
+                <div class="placeholder-text">Wybierz ucznia z listy po lewej stronie, aby wyświetlić historię jego prac.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadStudentHistory(element, studentName) {
+            // Wyróżnienie aktywnego ucznia na liście
+            document.querySelectorAll('.user-item').forEach(el => el.classList.remove('selected-user'));
+            element.classList.add('selected-user');
+
+            const contentArea = document.getElementById('historyContent');
+            contentArea.innerHTML = '<div class="placeholder-text">Ładowanie danych...</div>';
+
+            // Pobieranie historii zadań dla wybranego użytkownika
+            fetch('/admin/get_history?name=' + encodeURIComponent(studentName))
+            .then(res => res.json())
+            .then(data => {
+                if (data.length === 0) {
+                    contentArea.innerHTML = '<div class="placeholder-text">Ten użytkownik nie posiada jeszcze żadnych zatwierdzonych zadań.</div>';
+                    return;
+                }
+
+                contentArea.innerHTML = ''; // Czyszczenie placeholderu
+                
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'solution-card';
+                    
+                    // Bezpieczne czyszczenie kodu źródłowego przed wstrzyknięciem w HTML
+                    const escapedCode = item.accepted_code
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+
+                    card.innerHTML = 
+                        '<div class="solution-header">' +
+                            '<span class="solution-title">Zadanie ID: ' + item.task_id + '</span>' +
+                            '<span>Zaakceptowano: ' + item.submitted_at + ' | IP: ' + item.ip + '</span>' +
+                        '</div>' +
+                        '<div style="font-size: 14px; color: #4a5568; font-weight: bold; margin-bottom: 5px;">Treść zadania:</div>' +
+                        '<div style="font-size: 13px; color: #2d3748; line-height: 1.4; background: #f1f5f9; padding: 10px; border-radius: 4px;">' + item.task_text + '</div>' +
+                        '<pre class="solution-code">' + escapedCode + '</pre>';
+                        
+                    contentArea.appendChild(card);
+                });
+            })
+            .catch(err => {
+                contentArea.innerHTML = '<div class="placeholder-text" style="color: #dc3545;">Błąd podczas pobierania danych z bazy.</div>';
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>

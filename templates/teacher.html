@@ -10,12 +10,30 @@
     <div class="control-panel">
         <h2>Panel Sterowania Lekcją</h2>
         <div class="header-buttons" style="display: flex; align-items: center; gap: 15px;">
-            <div id="shuffleOptionWrapper" style="font-size: 13px; font-weight: bold; color: #555; display: none;">
-                <input type="checkbox" id="shuffleCheck" style="margin-right: 5px; cursor: pointer;">
-                <label for="shuffleCheck" style="cursor: pointer; user-select: none;">Losowa kolejność zadań</label>
+            <a href="/admin/tasks" style="background: #6c757d; color: white; text-decoration: none; padding: 10px 15px; font-weight: bold; font-size: 13px; border-radius: 4px;">BANK ZADAŃ</a>
+            
+            <a href="/admin/history" style="background: #4a5568; color: white; text-decoration: none; padding: 10px 15px; font-weight: bold; font-size: 13px; border-radius: 4px;">ARCHIWUM PRAC</a>
+
+	    <a id="historyLessonsLink" href="/admin/lessons" style="background: #007bff; color: white; text-decoration: none; padding: 10px 15px; font-weight: bold; font-size: 13px; border-radius: 4px;">HISTORIA LEKCJI</a>
+            
+            <div id="tagSelectWrapper" style="font-size: 13px; font-weight: bold; color: #555;">
+                <label for="lessonTagSelect">Zakres lekcji (Tag):</label>
+                <select id="lessonTagSelect" style="padding: 5px; font-weight: bold; cursor: pointer; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="">-- Wszystkie zadania --</option>
+                    {% for tag in tags %}
+                    <option value="{{ tag.tag_name }}">{{ tag.tag_name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <button id="startLessonBtn" class="btn-start" onclick="startLesson()" style="display: none;">START</button>
-            <button class="btn-next" onclick="restartAll()">RESETUJ</button>
+
+            <div id="shuffleOptionWrapper" style="font-size: 13px; font-weight: bold; color: #555;">
+                <input type="checkbox" id="shuffleCheck" style="margin-right: 5px; cursor: pointer;">
+                <label for="shuffleCheck" style="cursor: pointer; user-select: none;">Losowa kolejność</label>
+            </div>
+            
+            <button id="startLessonBtn" class="btn-start" onclick="triggerStartLesson()">START</button>
+            <button id="stopLessonBtn" class="btn-next" onclick="triggerStopLesson()" style="display: none; background-color: #dc3545;">STOP</button>
+            <button class="btn-next btn-reset" onclick="restartAll()">RESETUJ</button>
         </div>
     </div>
 

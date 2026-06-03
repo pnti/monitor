@@ -3,9 +3,6 @@ let globalStateCache = {};
 let pyodideTeacherInstance = null;
 let isCodeEdited = false;
 
-// Pobranie łącznej liczby zadań osadzonej w atrybucie kontenera głównego
-const totalTasks = document.getElementById('dashboardContainer').getAttribute('data-total-tasks');
-
 // Inicjalizacja Pyodide w przeglądarce nauczyciela
 async function initTeacherPyodide() {
     try {
@@ -16,7 +13,7 @@ async function initTeacherPyodide() {
     }
 }
 
-// Wykrycie zmian w polu edytora – blokada automatycznego odświeżania tekstu
+// Wykrycie zmian w polu edytora – blokada automatycznego odświeżania tekstu z serwera
 document.getElementById('globalCodePreview').addEventListener('input', () => {
     isCodeEdited = true;
 });
@@ -57,6 +54,7 @@ async function runStudentCode() {
     }
 }
 
+// Obsługa wyboru ucznia z listy bocznej
 function selectStudent(ip) {
     selectedStudentIp = ip;
     isCodeEdited = false;
@@ -74,6 +72,7 @@ function selectStudent(ip) {
     updateRightPanel(true);
 }
 
+// Aktualizacja prawego panelu z kodem
 function updateRightPanel(forceLoad = false) {
     if (!selectedStudentIp || !globalStateCache.progress) return;
 
@@ -82,8 +81,11 @@ function updateRightPanel(forceLoad = false) {
     const code = globalStateCache.codes[ip] || "# Uczeń nie przesłał jeszcze żadnego kodu dla tego zadania.";
     const isDone = globalStateCache.progress[ip];
 
+    const dashboardContainer = document.getElementById('dashboardContainer');
+    const totalTasks = dashboardContainer ? dashboardContainer.getAttribute('data-total-tasks') : "0";
+
     document.getElementById('viewedStudentName').innerText = "Uczeń: " + name;
-    document.getElementById('viewedStudentIp').innerText = "Adres IP: " + ip + " | Zadanie: " + globalStateCache.task_numbers[ip] + " / " + totalTasks;
+    document.getElementById('viewedStudentIp').innerText = "Adres IP: " + ip + " | Krok: " + globalStateCache.task_numbers[ip] + " / " + totalTasks;
     
     const codeBox = document.getElementById('globalCodePreview');
     
@@ -94,27 +96,63 @@ function updateRightPanel(forceLoad = false) {
     }
 
     const actionsBlock = document.getElementById('viewerActions');
-    if (isDone && globalStateCache.task_numbers[ip] <= totalTasks) {
+    if (isDone) {
         actionsBlock.style.display = 'flex';
     } else {
         actionsBlock.style.display = 'none';
     }
 }
 
-function startLesson() {
-    const isShuffleChecked = document.getElementById('shuffleCheck').checked;
+// Uruchomienie/Wznowienie lekcji
+function triggerStartLesson() {
+    console.log("[DIAGNOSTYKA] Uruchamiam procedurę triggerStartLesson()");
+
+    const shuffleElement = document.getElementById('shuffleCheck');
+    const tagElement = document.getElementById('lessonTagSelect');
+
+    if (!shuffleElement || !tagElement) {
+        console.error("[ERROR] Nie znaleziono elementów konfiguracyjnych w strukturze DOM.");
+        return;
+    }
+
+    const isShuffleChecked = shuffleElement.checked;
+    const selectedTagValue = tagElement.value;
 
     fetch('/start_lesson', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shuffle: isShuffleChecked })
+        body: JSON.stringify({ 
+            shuffle: isShuffleChecked,
+            tag: selectedTagValue
+        })
     })
-    .then(res => res.json()).then(data => {
-        if(data.success) {
-            document.getElementById('startLessonBtn').style.display = 'none';
-            document.getElementById('shuffleOptionWrapper').style.display = 'none';
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => { throw new Error(err.message); });
         }
+        return res.json();
+    })
+    .then(data => {
+        if (data.success) {
+            refreshStatus();
+        }
+    })
+    .catch(err => {
+        alert("Nie można rozpocząć lekcji: " + err.message);
     });
+}
+
+// Zatrzymanie przyjmowania zadań (STOP)
+function triggerStopLesson() {
+    console.log("[DIAGNOSTYKA] Uruchamiam procedurę triggerStopLesson()");
+    fetch('/stop_lesson', { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            refreshStatus();
+        }
+    })
+    .catch(err => console.error("Błąd zatrzymywania przyjmowania zadań:", err));
 }
 
 function acceptSelected() {
@@ -148,23 +186,47 @@ function rejectSelected() {
 }
 
 function restartAll() {
-    if(confirm("Czy na pewno chcesz zresetować wszystkich uczniów, ich kody oraz zamknąć dostęp do zadań (wymagany będzie ponowny START)?")) {
+    if (confirm("Czy na pewno chcesz zresetować wszystkich uczniów, ich kody oraz zamknąć dostęp do zadań?")) {
         fetch('/restart_tasks', { method: 'POST' }).then(() => location.reload());
     }
 }
 
+// Pętla odświeżania dashboardu bocznego
 function refreshStatus() {
     fetch('/status').then(res => res.json()).then(data => {
         globalStateCache = data;
         
         const startBtn = document.getElementById('startLessonBtn');
+        const stopBtn = document.getElementById('stopLessonBtn');
         const shuffleWrap = document.getElementById('shuffleOptionWrapper');
+        const tagWrap = document.getElementById('tagSelectWrapper');
+        const lessonsLink = document.getElementById('historyLessonsLink');
+        
         if (data.lesson_started) {
-            startBtn.style.display = 'none';
-            shuffleWrap.style.display = 'none';
+            if (shuffleWrap) shuffleWrap.style.display = 'none';
+            if (tagWrap) tagWrap.style.display = 'none';
+            
+            if (data.submissions_allowed) {
+                if (startBtn) startBtn.style.display = 'none';
+                if (stopBtn) stopBtn.style.display = 'inline-block';
+                if (lessonsLink) lessonsLink.style.display = 'none';
+            } else {
+                if (startBtn) {
+                    startBtn.style.display = 'inline-block';
+                    startBtn.innerText = "WZNÓW PRZYJMOWANIE";
+                }
+                if (stopBtn) stopBtn.style.display = 'none';
+                if (lessonsLink) lessonsLink.style.display = 'inline-block';
+            }
         } else {
-            startBtn.style.display = 'inline-block';
-            shuffleWrap.style.display = 'block';
+            if (startBtn) {
+                startBtn.style.display = 'inline-block';
+                startBtn.innerText = "START";
+            }
+            if (stopBtn) stopBtn.style.display = 'none';
+            if (shuffleWrap) shuffleWrap.style.display = 'block';
+            if (tagWrap) tagWrap.style.display = 'block';
+            if (lessonsLink) lessonsLink.style.display = 'inline-block';
         }
         
         for (let ip in data.progress) {
@@ -194,9 +256,8 @@ function refreshStatus() {
             }
         }
         updateRightPanel(false);
-    });
+    }).catch(err => console.error("Błąd odświeżania dashboardu: ", err));
 }
 
-// Inicjalizacja skryptu
 initTeacherPyodide();
 setInterval(refreshStatus, 2000);

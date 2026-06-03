@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Zarządzanie Stanem Lekcji</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h1, h2 { color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #28a745; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #218838; }
+        .btn-load { background: #007bff; padding: 5px 10px; font-size: 12px; }
+        .btn-load:hover { background: #0056b3; }
+        .btn-delete { background: #dc3545; padding: 5px 10px; font-size: 12px; }
+        .btn-delete:hover { background: #c82333; }
+        .lesson-list { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .lesson-item { background: #f8f9fa; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .lesson-info { font-size: 15px; }
+        .lesson-date { font-size: 12px; color: #666; margin-top: 3px; }
+        .actions { display: flex; gap: 5px; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { color: #007bff; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-links">
+            <a href="/teacher">&larr; Powrót do Panelu Nauczyciela</a>
+        </div>
+        
+        <h1>Archiwum i Przywracanie Lekcji</h1>
+        
+        <h2>Zapisz bieżący stan lekcji</h2>
+        <form action="/admin/save_lesson" method="POST">
+            <div class="form-group">
+                <label for="lesson_name">Nazwa lekcji / Klasa:</label>
+                <input type="text" id="lesson_name" name="lesson_name" placeholder="np. Klasa 1P - Podstawy pętli" required>
+            </div>
+            <button type="submit">ZAPISZ OBECNY STAN</button>
+        </form>
+        
+        <div class="lesson-list">
+            <h2>Zapisane lekcje w bazie</h2>
+            {% for lesson in lessons %}
+            <div class="lesson-item">
+                <div class="lesson-info">
+                    <strong>{{ lesson.name }}</strong>
+                    <div class="lesson-date">Utworzono: {{ lesson.created_at }}</div>
+                </div>
+                <div class="actions">
+                    <form action="/admin/load_lesson/{{ lesson.id }}" method="POST" onsubmit="return confirm('Czy na pewno chcesz wczytać tę lekcję? Nadpisze to obecny stan stanowisk uczniów!');">
+                        <button type="submit" class="btn-load">WCZYTAJ</button>
+                    </form>
+                    <form action="/admin/delete_lesson/{{ lesson.id }}" method="POST" onsubmit="return confirm('Czy na pewno chcesz bezpowrotnie usunąć tę lekcję z archiwum?');">
+                        <button type="submit" class="btn-delete">USUŃ</button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div style="color: #a0aec0; font-style: italic;">Brak zapisanych lekcji w bazie danych.</div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

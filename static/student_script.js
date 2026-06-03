@@ -53,16 +53,15 @@ function fetchStatus() {
         const taskContainer = document.querySelector('.task-container');
         const bannerContainer = document.getElementById('rejectionBannerContainer');
         
-        // Obsługa przejścia do nowego zadania (akceptacja poprzedniego)
         if (data.task_id !== currentTaskId) {
             currentTaskId = data.task_id;
             document.body.setAttribute('data-task-id', data.task_id);
             taskContainer.innerText = data.task_text;
             studentCode.value = ""; 
             studentCode.disabled = false;
-            mainBtn.disabled = false;
+            mainBtn.disabled = !data.submissions_allowed;
             runBtn.disabled = false;
-            mainBtn.innerText = "WYŚLIJ DO OCENY";
+            mainBtn.innerText = data.submissions_allowed ? "WYŚLIJ DO OCENY" : "PRZYJMOWANIE ZABLOKOWANE";
             helpBtn.style.display = "inline-block";
             bannerContainer.innerHTML = "";
             document.getElementById('output').innerText = "Środowisko Python gotowe do uruchomienia.";
@@ -70,7 +69,6 @@ function fetchStatus() {
             return;
         }
 
-        // Oczekiwanie na sprawdzenie kodu przez nauczyciela
         if (data.progress === true) {
             studentCode.disabled = true;
             mainBtn.disabled = true;
@@ -80,28 +78,31 @@ function fetchStatus() {
             bannerContainer.innerHTML = "";
             isAlreadyRejected = false; 
         } 
-        // Zadanie odrzucone - wstrzyknięcie poprawek nauczyciela
         else if (data.progress === false && data.rejection_msg !== "") {
             studentCode.disabled = false;
-            mainBtn.disabled = false;
             runBtn.disabled = false;
-            mainBtn.innerText = "WYŚLIJ POPRAWIONY KOD";
+            mainBtn.disabled = !data.submissions_allowed;
+            mainBtn.innerText = data.submissions_allowed ? "WYŚLIJ POPRAWIONY KOD" : "PRZYJMOWANIE ZABLOKOWANE";
             helpBtn.style.display = "inline-block";
             
-            // Bezpieczne łączenie stringów bez używania `${}`
             bannerContainer.innerHTML = 
                 '<div class="rejection-banner">' +
                     '<strong>Zadanie zwrócone do poprawy:</strong><br>' +
                     data.rejection_msg +
                 '</div>';
 
-            // Nadpisanie kodu wersją nauczyciela (wykonuje się tylko RAZ przy zmianie stanu)
             if (!isAlreadyRejected) {
                 if (data.code && studentCode.value !== data.code) {
                     studentCode.value = data.code;
                 }
                 isAlreadyRejected = true; 
             }
+        }
+        else if (data.progress === false && data.rejection_msg === "") {
+            studentCode.disabled = false;
+            runBtn.disabled = false;
+            mainBtn.disabled = !data.submissions_allowed;
+            mainBtn.innerText = data.submissions_allowed ? "WYŚLIJ DO OCENY" : "PRZYJMOWANIE ZABLOKOWANE";
         }
     });
 }
@@ -138,11 +139,13 @@ function sendDone() {
                 document.getElementById('mainBtn').innerText = "OCZEKIWANIE NA OCENĘ";
                 document.getElementById('runBtn').disabled = true;
                 document.getElementById('helpBtn').style.display = "none";
+            } else if (res.status === 403) {
+                alert("Przyjmowanie zadań zostało zablokowane przez nauczyciela!");
+                window.location.reload();
             }
         });
     }
 }
 
-// Uruchomienie procedur po załadowaniu skryptu
 initPyodide();
 setInterval(fetchStatus, 2000);
