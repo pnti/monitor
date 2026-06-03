@@ -1,9 +1,5 @@
-Plany na przyszłość
----
-1. Szyfrowanie transmisji.
+### Plany na przyszłość
 
-2. Implementacja WSGI.
+1. SSL
 
-3. Baza zadań do wyboru.
-
-4. Baza stanów aplikacji do wyboru.
+2. WSGI.
