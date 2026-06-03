@@ -19,3 +19,5 @@ Panel nauczyciela dostępny jest w podkatalogu teacher: `127.0.0.1:5000/teacher`
 Aby udostępnić japlikację w sieci lokalnej w klasie, należy w pliku `app.py` wpisać adresy IP indywidualnych stacji.
 
 Aplikację najlepiej uruchamiać za pomocą skryptów startowych, które automatycznie obsługuja zależności.
+
+W przypadku *MS Windows* jest to *uruchom.bat*, w przypadku LInuksa / MacOSX *uruchom.sh* .
