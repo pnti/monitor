@@ -2,48 +2,257 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Ucznia - Zadanie</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Panel Ucznia - Kodowanie</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <style>
+        /* Reset strukturalny i blokada przewijania strony */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            font-family: sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Główny kontener viewportu */
+        .app-viewport {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 12px;
+            gap: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Górny pasek z tożsamością ucznia */
+        .header-info {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        .header-info h2 {
+            margin: 0;
+            font-size: 15px;
+            color: #2c3e50;
+        }
+
+        /* GŁÓWNY UKŁAD ROBOCZY */
+        #workspace {
+            display: flex;
+            flex: 1;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        /* Bezpieczna klasa ukrywająca obszar roboczy */
+        .hidden {
+            display: none !important;
+        }
+
+        /* LEWA KOLUMNA: Duże, dedykowane okno na treść zadania i banery */
+        .task-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .task-container {
+            background: white;
+            border-left: 5px solid #007bff;
+            padding: 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            line-height: 1.6;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-sizing: border-box;
+            flex: 1;
+            overflow-y: auto; /* Przewijanie tylko gdy treść zadania jest wyjątkowo długa */
+        }
+
+        #rejectionBannerContainer {
+            box-sizing: border-box;
+        }
+        .rejection-banner {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* PRAWA KOLUMNA: Pionowy stos (Edytor -> Przyciski -> Terminal -> Pomoc) */
+        .action-column {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* Duże okno edytora kodu */
+        textarea {
+            width: 100%;
+            flex: 1.8; /* Większa waga proporcjonalna dla edytora */
+            font-family: monospace;
+            font-size: 14px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            resize: none;
+            background: #272822;
+            color: #f8f8f2;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        textarea:disabled {
+            background: #3e3f3a;
+            color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+        /* Pasek przycisków sterujących bezpośrednio pod edytorem */
+        .controls {
+            display: flex;
+            gap: 8px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+        button {
+            font-size: 13px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #runBtn {
+            background: #17a2b8;
+            color: white;
+            flex: 1;
+        }
+        #runBtn:hover:not(:disabled) { background: #138496; }
+        #mainBtn {
+            background: #007bff;
+            color: white;
+            flex: 1.5;
+        }
+        #mainBtn:hover:not(:disabled) { background: #0056b3; }
+        button:disabled {
+            background: #cbd5e1 !important;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Mniejsze okno terminala pod edytorem i przyciskami */
+        .terminal {
+            background: #1e1e1e;
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 12px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* Mniejsza waga proporcjonalna względem edytora */
+            min-height: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .terminal strong {
+            display: block;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        #output {
+            margin: 0;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Przycisk POMOC na samym dole prawej kolumny */
+        #helpBtn {
+            background: #ffc107;
+            color: #212529;
+            height: 40px;
+            font-size: 14px;
+            width: 100%;
+            border-radius: 6px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        #helpBtn:hover { background: #e0a800; }
+        #helpBtn.active {
+            background: #dc3545;
+            color: white;
+        }
+        #helpBtn.active:hover { background: #bd2130; }
+    </style>
 </head>
-<body data-task-id="{{ task_id }}">
+<body>
 
-    <div class="app-container">
-        
-        <div class="left-column">
-            <div class="student-header">
-                <h1>{{ name }}</h1>
-                <div class="station-badge">{{ station }}</div>
-            </div>
-            
-            <div id="rejectionBannerContainer"></div>
-
-            <div class="task-section">
-                <h3>Treść zadania do wykonania:</h3>
-                <div class="task-container">{{ task }}</div>
-            </div>
-            
-            <div class="footer-info">Status odświeża się automatycznie.</div>
-        </div>
-        
-        <div class="right-column">
-            <div class="editor-header">
-                <h3>Kod źródłowy Python:</h3>
-            </div>
-            
-            <textarea id="studentCode" class="code-area" placeholder="# Napisz swój program tutaj...&#10;print('Hello World')" spellcheck="false"></textarea>
-
-            <div class="terminal-header">Konsola wyjściowa:</div>
-            <pre id="output" class="terminal-box">Oczekiwanie na uruchomienie kodu...</pre>
-
-            <div class="button-group">
-                <button id="helpBtn" class="btn-help" onclick="askHelp()">POMOC</button>
-                <button id="runBtn" class="btn-run" onclick="runPythonCode()">URUCHOM KOD</button>
-                <button id="mainBtn" class="btn-done" onclick="sendDone()">WYŚLIJ DO OCENY</button>
-            </div>
+    <div class="app-viewport">
+        <div class="header-info">
+            <h2>Uczeń: {{ name }}</h2>
+            <small style="color: #666; font-weight: bold;">{{ station }}</small>
         </div>
 
+        <div id="workspace" class="{% if task_id == 'finished' or task_id == 'lock' %}hidden{% endif %}">
+            
+            <div class="task-column">
+                <div id="rejectionBannerContainer">
+                    {% if rejection_msg %}
+                    <div class="rejection-banner">
+                        <strong>Do poprawy:</strong><br>
+                        {{ rejection_msg }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="task-container">
+                    {{ task }}
+                </div>
+            </div>
+
+            <div class="action-column">
+                <textarea id="studentCode" placeholder="# Napisz swój kod w Pythonie tutaj..." spellcheck="false" autocomplete="off"></textarea>
+                
+                <div class="controls">
+                    <button id="runBtn" onclick="runPythonCode()">URUCHOM KOD</button>
+                    <button id="mainBtn" onclick="sendDone()">WYŚLIJ DO OCENY</button>
+                </div>
+
+                <div class="terminal">
+                    <strong>Wirtualna Konsola Wykonawcza</strong>
+                    <pre id="output">Ładowanie silnika interpretatora Python...</pre>
+                </div>
+
+                <button id="helpBtn" onclick="askHelp()">POMOC</button>
+            </div>
+
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='student_script.js') }}"></script>

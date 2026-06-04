@@ -2,23 +2,17 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Panel Nauczyciela - Dashboard</title>
+    <title>Panel Nauczyciela - Kokpit</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='teacher_style.css') }}">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
 </head>
 <body>
+
     <div class="control-panel">
-        <h2>Panel Sterowania Lekcją</h2>
-        <div class="header-buttons" style="display: flex; align-items: center; gap: 15px;">
-            <a href="/admin/tasks" class="btn-teacher-nav" style="background: #6c757d;">ZADANIA</a>
-            
-            <a href="/admin/history" class="btn-teacher-nav" style="background: #4a5568;">ARCHIWUM</a>
-            
-            <a id="historyLessonsLink" href="/admin/lessons" class="btn-teacher-nav" style="background: #007bff;">HISTORIA</a>
-            
+        <div class="panel-left-config" style="display: flex; align-items: center; gap: 15px;">
             <div id="tagSelectWrapper" style="font-size: 13px; font-weight: bold; color: #555;">
                 <label for="lessonTagSelect">Zakres lekcji (Tag):</label>
-                <select id="lessonTagSelect" style="padding: 5px; font-weight: bold; cursor: pointer; border-radius: 4px; border: 1px solid #ccc;">
+                <select id="lessonTagSelect" style="padding: 4px; font-weight: bold; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
                     <option value="">-- Wszystkie zadania --</option>
                     {% for tag in tags %}
                     <option value="{{ tag.tag_name }}">{{ tag.tag_name }}</option>
@@ -26,14 +20,20 @@
                 </select>
             </div>
 
-            <div id="shuffleOptionWrapper" style="font-size: 13px; font-weight: bold; color: #555;">
+            <div id="shuffleOptionWrapper" style="font-size: 13px; font-weight: bold; color: #555; display: flex; align-items: center;">
                 <input type="checkbox" id="shuffleCheck" style="margin-right: 5px; cursor: pointer;">
                 <label for="shuffleCheck" style="cursor: pointer; user-select: none;">Losowa kolejność</label>
             </div>
-            
-            <button id="startLessonBtn" class="btn-start" onclick="triggerStartLesson()">START</button>
-            <button id="stopLessonBtn" class="btn-next" onclick="triggerStopLesson()" style="display: none; background-color: #dc3545;">STOP</button>
-            <button class="btn-next btn-reset" onclick="restartAll()">RESETUJ</button>
+        </div>
+
+        <div class="header-buttons" style="display: flex; align-items: center; gap: 8px;">
+            <a href="/admin/users" class="btn-teacher-nav">UCZNIOWIE</a>
+            <a href="/admin/tasks" class="btn-teacher-nav">ZADANIA</a>
+            <a href="/admin/history" class="btn-teacher-nav">ARCHIWUM</a>
+            <a id="historyLessonsLink" href="/admin/lessons" class="btn-teacher-nav">HISTORIA</a>
+            <button id="startLessonBtn" onclick="triggerStartLesson()">START</button>
+            <button id="stopLessonBtn" onclick="triggerStopLesson()" style="display: none;">STOP</button>
+            <button class="btn-reset" onclick="restartAll()">RESETUJ</button>
         </div>
     </div>
 
@@ -55,12 +55,13 @@
                 {% endfor %}
             </div>
         </div>
-        
+
         <div class="right-column">
             <div id="codeViewerPlaceholder" class="viewer-placeholder">
-                Wybierz ucznia z listy po lewej stronie, aby zobaczyć szczegóły i przesłany kod.
+                Wybierz stanowisko z listy po lewej stronie, aby zobaczyć przesłane rozwiązanie lub aktualny stan ucznia.
             </div>
-            <div id="codeViewerContent" style="display: none; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+            
+            <div id="codeViewerContent" style="display: none; flex: 1; flex-direction: column; min-height: 0;">
                 <h3 id="viewedStudentName">Uczeń: -</h3>
                 <p id="viewedStudentIp" style="color: #666; font-size: 0.9em; margin-top: -10px;"></p>
                 
@@ -73,7 +74,7 @@
                     <h4 style="margin: 0;">Kod źródłowy ucznia (możesz edytować):</h4>
                     <button id="teacherRunBtn" class="btn-run-student" onclick="runStudentCode()">URUCHOM KOD UCZNIA</button>
                 </div>
-                <textarea id="globalCodePreview" class="global-code-box" spellcheck="false"></textarea>
+                <textarea id="globalCodePreview" class="global-code-box" spellcheck="false" autocomplete="off"></textarea>
 
                 <h4 style="margin: 10px 0 5px 0;">Konsola wykonawcza (Nauczyciel):</h4>
                 <pre id="teacherTerminal" class="teacher-terminal-box">Silnik Pythona gotowy.</pre>

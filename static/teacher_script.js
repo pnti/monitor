@@ -1,197 +1,75 @@
 let selectedStudentIp = null;
-let globalStateCache = {};
-let pyodideTeacherInstance = null;
-let isCodeEdited = false;
+let globalStateCache = null;
+let pyodideInstance = null;
 
-// Inicjalizacja Pyodide w przeglądarce nauczyciela
 async function initTeacherPyodide() {
+    const terminal = document.getElementById('teacherTerminal');
     try {
-        pyodideTeacherInstance = await loadPyodide();
-        document.getElementById('teacherTerminal').innerText = "Środowisko testowe Python zainicjalizowane poprawnie.";
+        pyodideInstance = await loadPyodide();
+        if (terminal) terminal.innerText = "Wirtualny interpreter Python gotowy do ewaluacji rozwiązań.";
     } catch (err) {
-        document.getElementById('teacherTerminal').innerText = "Błąd inicjalizacji silnika: " + err;
+        if (terminal) terminal.innerText = "Błąd inicjalizacji interpretera Pyodide: " + err;
     }
 }
 
-// Wykrycie zmian w polu edytora – blokada automatycznego odświeżania tekstu z serwera
-document.getElementById('globalCodePreview').addEventListener('input', () => {
-    isCodeEdited = true;
-});
-
-// Uruchamianie kodu w lokalnym sandboksie Pyodide
 async function runStudentCode() {
-    if (!pyodideTeacherInstance) {
-        alert("Silnik Pythona wciąż się ładuje...");
-        return;
-    }
-
+    if (!pyodideInstance) { alert("Trwa uruchamianie interpretera Pythona. Poczekaj chwilę..."); return; }
     const code = document.getElementById('globalCodePreview').value;
     const terminal = document.getElementById('teacherTerminal');
     
-    if (code.startsWith("# Uczeń nie przesłał") || code.startsWith("# Brak kodu") || code.trim() === "") {
-        alert("Brak kodu do uruchomienia.");
-        return;
-    }
-
-    terminal.innerText = "Uruchamianie kodu...\n";
-    terminal.style.color = "#00ff00";
-
+    if (terminal) terminal.innerText = "Uruchamianie kodu ucznia...\n";
     try {
-        pyodideTeacherInstance.runPython(`
-            import sys
-            import io
-            sys.stdout = io.StringIO()
-        `);
-
-        await pyodideTeacherInstance.runPythonAsync(code);
-
-        const stdout = pyodideTeacherInstance.runPython("sys.stdout.getvalue()");
-        terminal.innerText = stdout ? stdout : "Program zakończył działanie poprawnie (brak danych wyjściowych).";
-        terminal.style.color = "#ffffff";
+        pyodideInstance.runPython(`import sys, io; sys.stdout = io.StringIO()`);
+        await pyodideInstance.runPythonAsync(code);
+        const stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+        if (terminal) {
+            terminal.innerText = stdout ? stdout : "Program zakończył działanie (brak danych wyjściowych).";
+            terminal.style.color = "#00ff00";
+        }
     } catch (err) {
-        terminal.innerText = err.message;
-        terminal.style.color = "#ff6b6b";
+        if (terminal) {
+            terminal.innerText = err.message;
+            terminal.style.color = "#ff6b6b";
+        }
     }
 }
 
-// Obsługa wyboru ucznia z listy bocznej
 function selectStudent(ip) {
     selectedStudentIp = ip;
-    isCodeEdited = false;
-    
-    document.getElementById('codeViewerPlaceholder').style.display = 'none';
-    document.getElementById('codeViewerContent').style.display = 'flex';
+    updateRightPanel(true);
     
     document.querySelectorAll('.student-bar').forEach(el => el.classList.remove('selected-bar'));
-    const activeBar = document.getElementById('box-' + ip.replace(/\./g, '-'));
-    if (activeBar) activeBar.classList.add('selected-bar');
-
-    document.getElementById('teacherTerminal').innerText = "Oczekiwanie na uruchomienie kodu...";
-    document.getElementById('teacherTerminal').style.color = "#ffffff";
-
-    updateRightPanel(true);
+    const currentBox = document.getElementById('box-' + ip.replace(/\./g, '-'));
+    if (currentBox) currentBox.classList.add('selected-bar');
 }
 
-// Aktualizacja prawego panelu z kodem
-function updateRightPanel(forceLoad = false) {
-    if (!selectedStudentIp || !globalStateCache.progress) return;
+function updateRightPanel(forceCodeReload) {
+    if (!selectedStudentIp || !globalStateCache) return;
 
-    const ip = selectedStudentIp;
-    const name = globalStateCache.names[ip] || "Stanowisko";
-    const code = globalStateCache.codes[ip] || "# Uczeń nie przesłał jeszcze żadnego kodu dla tego zadania.";
-    const isDone = globalStateCache.progress[ip];
+    const placeholder = document.getElementById('codeViewerPlaceholder');
+    const content = document.getElementById('codeViewerContent');
+    const nameHeader = document.getElementById('viewedStudentName');
+    const ipSub = document.getElementById('viewedStudentIp');
+    const previewBox = document.getElementById('globalCodePreview');
 
-    const dashboardContainer = document.getElementById('dashboardContainer');
-    const totalTasks = dashboardContainer ? dashboardContainer.getAttribute('data-total-tasks') : "0";
+    if (placeholder) placeholder.style.display = 'none';
+    if (content) content.style.display = 'flex';
 
-    document.getElementById('viewedStudentName').innerText = "Uczeń: " + name;
-    document.getElementById('viewedStudentIp').innerText = "Adres IP: " + ip + " | Krok: " + globalStateCache.task_numbers[ip] + " / " + totalTasks;
-    
-    const codeBox = document.getElementById('globalCodePreview');
-    
-    if (!isCodeEdited || forceLoad) {
-        if (codeBox.value !== code) {
-            codeBox.value = code;
+    const name = globalStateCache.names[selectedStudentIp] || "Nieznany uczeń";
+    if (nameHeader) nameHeader.innerText = "Stanowisko: " + name;
+    if (ipSub) ipSub.innerText = "IP ucznia: " + selectedStudentIp;
+
+    if (forceCodeReload) {
+        const studentCode = globalStateCache.codes[selectedStudentIp] || "";
+        if (previewBox) previewBox.value = studentCode;
+        const terminal = document.getElementById('teacherTerminal');
+        if (terminal) {
+            terminal.innerText = "Wczytano kod stanowiska. Kliknij 'URUCHOM KOD UCZNIA' celem weryfikacji.";
+            terminal.style.color = "#ffffff";
         }
     }
-
-    const actionsBlock = document.getElementById('viewerActions');
-    if (isDone) {
-        actionsBlock.style.display = 'flex';
-    } else {
-        actionsBlock.style.display = 'none';
-    }
 }
 
-// Uruchomienie/Wznowienie lekcji
-function triggerStartLesson() {
-    console.log("[DIAGNOSTYKA] Uruchamiam procedurę triggerStartLesson()");
-
-    const shuffleElement = document.getElementById('shuffleCheck');
-    const tagElement = document.getElementById('lessonTagSelect');
-
-    if (!shuffleElement || !tagElement) {
-        console.error("[ERROR] Nie znaleziono elementów konfiguracyjnych w strukturze DOM.");
-        return;
-    }
-
-    const isShuffleChecked = shuffleElement.checked;
-    const selectedTagValue = tagElement.value;
-
-    fetch('/start_lesson', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            shuffle: isShuffleChecked,
-            tag: selectedTagValue
-        })
-    })
-    .then(res => {
-        if (!res.ok) {
-            return res.json().then(err => { throw new Error(err.message); });
-        }
-        return res.json();
-    })
-    .then(data => {
-        if (data.success) {
-            refreshStatus();
-        }
-    })
-    .catch(err => {
-        alert("Nie można rozpocząć lekcji: " + err.message);
-    });
-}
-
-// Zatrzymanie przyjmowania zadań (STOP)
-function triggerStopLesson() {
-    console.log("[DIAGNOSTYKA] Uruchamiam procedurę triggerStopLesson()");
-    fetch('/stop_lesson', { method: 'POST' })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            refreshStatus();
-        }
-    })
-    .catch(err => console.error("Błąd zatrzymywania przyjmowania zadań:", err));
-}
-
-function acceptSelected() {
-    if (!selectedStudentIp) return;
-    const body = new URLSearchParams();
-    body.append('ip', selectedStudentIp);
-
-    fetch('/accept_task', { method: 'POST', body: body })
-    .then(res => res.json()).then(data => {
-        if(!data.success) alert(data.message);
-    });
-}
-
-function rejectSelected() {
-    if (!selectedStudentIp) return;
-    
-    const reason = prompt("Wpisz wskazówkę dla ucznia dlaczego zadanie zostało odrzucone:");
-    if (reason === null) return;
-
-    const currentEditedCode = document.getElementById('globalCodePreview').value;
-
-    const body = new URLSearchParams();
-    body.append('ip', selectedStudentIp);
-    body.append('reason', reason);
-    body.append('code', currentEditedCode);
-
-    fetch('/reject_task', { method: 'POST', body: body })
-    .then(res => res.json()).then(data => {
-        if(!data.success) alert(data.message);
-    });
-}
-
-function restartAll() {
-    if (confirm("Czy na pewno chcesz zresetować wszystkich uczniów, ich kody oraz zamknąć dostęp do zadań?")) {
-        fetch('/restart_tasks', { method: 'POST' }).then(() => location.reload());
-    }
-}
-
-// Pętla odświeżania dashboardu bocznego
 function refreshStatus() {
     fetch('/status').then(res => res.json()).then(data => {
         globalStateCache = data;
@@ -201,6 +79,11 @@ function refreshStatus() {
         const shuffleWrap = document.getElementById('shuffleOptionWrapper');
         const tagWrap = document.getElementById('tagSelectWrapper');
         const lessonsLink = document.getElementById('historyLessonsLink');
+        
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        if (dashboardContainer && data.total_tasks) {
+            dashboardContainer.setAttribute('data-total-tasks', data.total_tasks);
+        }
         
         if (data.lesson_started) {
             if (shuffleWrap) shuffleWrap.style.display = 'none';
@@ -235,11 +118,17 @@ function refreshStatus() {
             if (!el) continue;
             
             const statusTxt = el.querySelector('.status-text');
-            const taskNumTxt = el.querySelector('.task-num-text');
+            const taskBlock = el.querySelector('.student-task-block');
             const nameEl = el.querySelector('.student-name-text');
             
             if (data.names[ip]) nameEl.innerText = data.names[ip];
-            taskNumTxt.innerText = data.task_numbers[ip];
+            
+            // Poprawka: Bezpośrednie nadpisywanie całego kontenera usuwa stare śmieci kodu Jinja
+            if (data.lesson_started && data.names[ip]) {
+                taskBlock.innerText = "Zad: " + data.task_numbers[ip] + " / " + data.total_tasks;
+            } else {
+                taskBlock.innerText = "Zad: -";
+            }
             
             let baseClass = 'student-bar ';
             if (ip === selectedStudentIp) baseClass += 'selected-bar ';
@@ -259,5 +148,68 @@ function refreshStatus() {
     }).catch(err => console.error("Błąd odświeżania dashboardu: ", err));
 }
 
+function triggerStartLesson() {
+    const tagSelect = document.getElementById('lessonTagSelect');
+    const shuffleCheck = document.getElementById('shuffleCheck');
+    
+    const tagValue = tagSelect ? tagSelect.value : "";
+    const shuffleValue = shuffleCheck ? shuffleCheck.checked : false;
+
+    const params = new URLSearchParams();
+    params.append('tag', tagValue);
+    params.append('shuffle', shuffleValue);
+
+    fetch('/start_lesson', { method: 'POST', body: params })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "started") {
+            refreshStatus();
+        } else {
+            alert("Błąd: " + data.message);
+        }
+    });
+}
+
+function triggerStopLesson() {
+    fetch('/stop_lesson', { method: 'POST' }).then(() => refreshStatus());
+}
+
+function restartAll() {
+    if (confirm("Czy na pewno chcesz wyczyścić stan lekcji i zresetować wszystkich uczniów?")) {
+        fetch('/restart_all', { method: 'POST' }).then(() => {
+            selectedStudentIp = null;
+            const placeholder = document.getElementById('codeViewerPlaceholder');
+            const content = document.getElementById('codeViewerContent');
+            if (placeholder) placeholder.style.display = 'block';
+            if (content) content.style.display = 'none';
+            refreshStatus();
+        });
+    }
+}
+
+function acceptSelected() {
+    if (!selectedStudentIp) return;
+    const params = new URLSearchParams();
+    params.append('ip', selectedStudentIp);
+    
+    fetch('/accept', { method: 'POST', body: params }).then(() => {
+        const previewBox = document.getElementById('globalCodePreview');
+        if (previewBox) previewBox.value = "";
+        refreshStatus();
+    });
+}
+
+function rejectSelected() {
+    if (!selectedStudentIp) return;
+    const msg = prompt("Wpisz uwagi i wskazówki dla ucznia (co należy poprawić):");
+    if (msg === null) return; 
+
+    const params = new URLSearchParams();
+    params.append('ip', selectedStudentIp);
+    params.append('msg', msg);
+    
+    fetch('/reject', { method: 'POST', body: params }).then(() => refreshStatus());
+}
+
 initTeacherPyodide();
-setInterval(refreshStatus, 2000);
+setInterval(refreshStatus, 1000);

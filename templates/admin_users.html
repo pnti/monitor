@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Nauczyciela - Zarządzanie Uczniami</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f0f2f5; color: #333; }
+        .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        
+        /* Styl przycisków menu - spójny z nowym toolbar Teacher */
+        .nav-bar a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 90px;
+            height: 30px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            background-color: #a0aec0;
+            color: white;
+            transition: background-color 0.1s ease-in-out;
+        }
+        .nav-bar a:hover { background-color: #cbd5e1; }
+
+        .container { max-width: 700px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h2, h3 { margin-top: 0; color: #2d3748; }
+        
+        form { background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .form-group { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .form-group input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .form-group input[name="full_name"] { flex: 2; }
+        .form-group input[name="alias"] { flex: 1; }
+        
+        .btn-submit { background: #28a745; color: white; border: none; padding: 7px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-submit:hover { background: #218838; }
+        .btn-cancel { background: #6c757d; color: white; border: none; padding: 7px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; display: none; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #edf2f7; color: #4a5568; }
+        tr:hover { background: #f8f9fa; }
+        
+        .actions { display: flex; gap: 8px; }
+        .btn-edit { background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-edit:hover { background: #0069d9; }
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-delete:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar">
+        <a href="/teacher">KOKPIT</a>
+        <a href="/admin/tasks">ZADANIA</a>
+        <a href="/admin/history">ARCHIWUM</a>
+        <a href="/admin/lessons">HISTORIA</a>
+    </div>
+
+    <div class="container">
+        <h2 id="formHeader">Dodaj nowego ucznia</h2>
+        
+        <form action="/admin/add_user" method="POST" id="userForm">
+            <input type="hidden" name="user_id" id="userIdField" value="">
+            <div class="form-group">
+                <input type="text" name="full_name" id="fullNameField" placeholder="Imię i Nazwisko (np. Jan Kowalski)" required autocomplete="off">
+                <input type="text" name="alias" id="aliasField" placeholder="Alias / Login (opcjonalnie)" autocomplete="off">
+                <button type="submit" class="btn-submit" id="submitBtn">ZAPISZ</button>
+                <button type="button" class="btn-cancel" id="cancelBtn" onclick="resetForm()">ANULUJ</button>
+            </div>
+        </form>
+
+        <h3>Lista uprawnionych uczniów (baza danych)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Imię i Nazwisko</th>
+                    <th>Alias / Login</th>
+                    <th>Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td><strong>{{ user.full_name }}</strong></td>
+                    <td>{{ user.alias if user.alias else '<span style="color:#aaa; font-style:italic;">brak</span>' | safe }}</td>
+                    <td class="actions">
+                        <button class="btn-edit" onclick="editUser('{{ user.id }}', '{{ user.full_name }}', '{{ user.alias if user.alias else '' }}')">EDYTUJ</button>
+                        <form action="/admin/delete_user/{{ user.id }}" method="POST" style="margin:0; padding:0; border:none; background:none;" onsubmit="return confirm('Czy na pewno chcesz usunąć tego użytkownika?');">
+                            <button type="submit" class="btn-delete">USUŃ</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not users %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #999; font-style: italic;">Brak zarejestrowanych uczniów w bazie danych.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function editUser(id, name, alias) {
+            document.getElementById('formHeader').innerText = "Edytuj dane ucznia (ID: " + id + ")";
+            document.getElementById('userIdField').value = id;
+            document.getElementById('fullNameField').value = name;
+            document.getElementById('aliasField').value = alias;
+            document.getElementById('cancelBtn').style.display = "inline-block";
+            document.getElementById('fullNameField').focus();
+        }
+
+        function resetForm() {
+            document.getElementById('formHeader').innerText = "Dodaj nowego ucznia";
+            document.getElementById('userIdField').value = "";
+            document.getElementById('fullNameField').value = "";
+            document.getElementById('aliasField').value = "";
+            document.getElementById('cancelBtn').style.display = "none";
+        }
+    </script>
+</body>
+</html>

@@ -12,29 +12,23 @@ body {
     box-sizing: border-box;
 }
 
-/* Górny panel kontrolny nauczyciela */
+/* Górny pasek narzędziowy o stałej wysokości 50px */
 .control-panel {
     background: white;
-    padding: 10px 20px;
+    padding: 0 15px;
     border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 60px;
+    height: 50px;
     box-sizing: border-box;
-}
-
-.control-panel h2 {
-    margin: 0;
-    font-size: 18px;
-    color: #2c3e50;
 }
 
 /* Główny kontener dashboardu */
 .dashboard-container {
     display: flex;
     flex: 1;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 50px);
     padding: 12px;
     gap: 12px;
     box-sizing: border-box;
@@ -43,7 +37,7 @@ body {
 
 /* Lewa kolumna: Lista stanowisk */
 .left-column {
-    flex: 1.2; /* Nieznacznie poszerzona, by pomieścić dwie kolumny kafelków */
+    flex: 1.2;
     background: white;
     border-radius: 8px;
     padding: 12px;
@@ -65,22 +59,23 @@ body {
     min-height: 0;
 }
 
-/* ZMIENIONE: Siatka stanowisk wyświetlająca się w DWÓCH kolumnach, dopasowana do ekranu */
+/* Siatka stanowisk wyświetlająca się w dwóch kolumnach z wyrównaniem do góry */
 .bars-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Dokładnie 2 kolumny */
-    gap: 6px;                              /* Mniejszy odstęp dla oszczędności miejsca */
+    grid-template-columns: repeat(2, 1fr);
+    align-content: start;                  /* Wymuszenie układania wierszy od góry */
+    gap: 6px;
     overflow-y: auto;
     flex: 1;
     padding-right: 3px;
 }
 
-/* ZMIENIONE: Bardziej kompaktowy, niski pasek stanowiska */
+/* Kompaktowy, niski pasek stanowiska */
 .student-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;                     /* Zmniejszony padding góra/dół */
+    padding: 6px 10px;
     border-radius: 5px;
     border: 1px solid #e2e8f0;
     cursor: pointer;
@@ -106,7 +101,7 @@ body {
     flex: 2;
     display: flex;
     flex-direction: column;
-    min-width: 0; /* Zapobiega rozpychaniu komórki przez długie ciągi */
+    min-width: 0;
 }
 
 .student-name-text {
@@ -114,7 +109,7 @@ body {
     color: #2d3748;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Przycina zbyt długie nazwiska przy ciasnym układzie */
+    text-overflow: ellipsis;
 }
 
 .student-ip-text {
@@ -225,42 +220,30 @@ body {
 }
 .btn-run-student:hover { background: #138496; }
 
-/* Geometria przycisków i linków w górnym panelu kontrolnym nauczyciela */
+/* Przyciski górnego paska narzędziowego w kolorze #a0aec0 */
 .control-panel .header-buttons button,
 .control-panel .header-buttons .btn-teacher-nav {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 120px !important;       
-    height: 38px !important;       
+    width: 90px !important;        
+    height: 30px !important;       
     box-sizing: border-box !important;
     padding: 0 !important;
     margin: 0 !important;
     border-radius: 4px !important;
-    font-size: 13px !important;
+    font-size: 12px !important;    
     font-weight: bold !important;
     text-align: center !important;
     text-decoration: none !important;
     cursor: pointer !important;
     border: none !important;
+    background-color: #a0aec0 !important; 
+    color: white !important;
+    transition: background-color 0.1s ease-in-out;
 }
 
-.control-panel .header-buttons .btn-teacher-nav {
-    color: white !important;
-}
-
-.btn-start {
-    background-color: #28a745 !important;
-    color: white !important;
-}
-.btn-start:hover {
-    background-color: #218838 !important;
-}
-
-.btn-reset {
-    background-color: #ff9800 !important; 
-    color: white !important;
-}
-.btn-reset:hover {
-    background-color: #e65100 !important;
+.control-panel .header-buttons button:hover,
+.control-panel .header-buttons .btn-teacher-nav:hover {
+    background-color: #cbd5e1 !important;
 }
